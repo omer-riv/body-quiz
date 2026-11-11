@@ -1,0 +1,26 @@
+{
+  "name": "body-quiz",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A 3D anatomy quiz game",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "serve": "npm run build && wrangler dev",
+    "deploy": "npm test && npm run build && wrangler deploy",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.187.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0",
+    "wrangler": "^4.160.1"
+  }
+}

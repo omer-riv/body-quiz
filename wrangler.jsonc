@@ -1,0 +1,13 @@
+// Cloudflare config: a Worker (worker/index.ts) that answers /api/* and serves
+// the built game from dist/ for everything else.
+{
+  "name": "body-quiz",
+  "compatibility_date": "2026-10-01",
+  "main": "worker/index.ts",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  }
+}
