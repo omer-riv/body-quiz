@@ -33,3 +33,5 @@ One-time setup in the Cloudflare dashboard:
 | `src/main.ts` | Entry point; for now a placeholder Three.js scene |
 | `worker/index.ts` | Cloudflare Worker: `/api/*` and the game's files |
 | `tests/` | Vitest unit tests |
+
+<!-- Deployed via Cloudflare Workers Builds on push to main. -->
