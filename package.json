@@ -11,12 +11,14 @@
     "serve": "npm run build && wrangler dev",
     "deploy": "npm test && npm run build && wrangler deploy",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build-body": "python3 scripts/build-body.py"
   },
   "dependencies": {
     "three": "^0.187.0"
   },
   "devDependencies": {
+    "@types/node": "^26.6.6",
     "@types/three": "^0.187.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
