@@ -1,5 +1,6 @@
 // The game on screen: the menu, a round's questions and answers, and the summary.
 import { Body, type Part } from './body';
+import { factFor } from './facts';
 import { MODE_NAMES, Round, pickQuestions, FIND_POINTS, type ModeId } from './game';
 import { makeRng } from './rng';
 import { bestKey, bestScore, loadSettings, recordScore, saveSettings } from './settings';
@@ -147,7 +148,7 @@ export class App {
     this.view.inset = { top: 84, bottom: mode === 'name' ? 190 : 110 };
     this.body.setLayers(mode === 'explore' && system === 'all' ? MENU_LAYERS : START_LAYERS[system]);
     this.drawLayers();
-    for (const id of ['options', 'card', 'next', 'skip', 'restore']) $(id).hidden = true;
+    for (const id of ['options', 'card', 'fact', 'next', 'skip', 'restore']) $(id).hidden = true;
     $('peel').hidden = mode === 'name';
     $('peel').setAttribute('aria-pressed', 'false');
     $('layers').hidden = mode === 'name';
@@ -184,6 +185,7 @@ export class App {
     this.body.clearGlows();
     this.hideToast();
     $('next').hidden = true;
+    $('fact').hidden = true;
     $('progress').textContent = `${round.index + 1} / ${round.questions.length}`;
     $('score').textContent = String(round.score);
     if (round.mode === 'find') {
@@ -280,13 +282,19 @@ export class App {
     this.resolved(false);
   }
 
-  /** After an answer: a right one moves on by itself, a wrong one waits to be looked at. */
+  /** After an answer: a right one with nothing to read moves on by itself, anything else waits for Next. */
   private resolved(correct: boolean): void {
     const round = this.round!;
     $('score').textContent = String(round.score);
     $('skip').hidden = true;
     clearTimeout(this.timer);
-    if (correct) {
+    const fact = factFor(round.question!.target.name);
+    $('fact').hidden = !fact;
+    if (fact) {
+      $('fact-does').textContent = fact.does;
+      $('fact-fun').textContent = fact.fun;
+    }
+    if (correct && !fact) {
       this.timer = window.setTimeout(() => this.advance(), 1100);
     } else {
       $('next').hidden = false;
