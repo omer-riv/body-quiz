@@ -12,7 +12,8 @@
     "deploy": "npm test && npm run build && wrangler deploy",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "build-body": "python3 scripts/build-body.py"
+    "build-body": "python3 scripts/build-body.py",
+    "missing-facts": "FACTS_REPORT=1 vitest run tests/facts.test.ts --silent=false"
   },
   "dependencies": {
     "three": "^0.187.0"
