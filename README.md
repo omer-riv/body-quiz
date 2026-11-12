@@ -10,9 +10,21 @@ A 3D anatomy quiz game (working title), in the spirit of Landfall: plain TypeScr
 
 Once a question is answered, the game says what the structure does and one fun fact about it, where it has them (`src/facts.ts`; most are still to be written, and `npm run missing-facts` lists which).
 
-A round is 10 questions from one **system** (Skeleton, Muscles, Organs, Brain, or Everything) at one **level**. Easy asks for what most people have heard of (the skull, the biceps, the liver), Medium for more (the frontal bone, the rotator cuff, the spleen), Hard for everything the model has, about 340 structures. Your best score for each combination is kept in the browser.
+A round is 10 questions from one **system** (Skeleton, Muscles, Organs, Brain, or Everything) at one **level**. Easy asks for what most people have heard of (the skull, the biceps, the liver), Medium for more (the frontal bone, the rotator cuff, the spleen), Hard for everything the model has, about 340 structures. A system with fewer than 10 structures at a level has a shorter round: Brain at Easy has 6. Your best score for each combination is kept in the browser.
 
 Drag to turn the body, pinch or scroll to zoom, drag with two fingers (or the right mouse button) to move.
+
+## High scores
+
+Find It and Name It have shared high-score tables, the same for everyone who plays: **This week**, **This month** and **All time**. Weeks start on Monday and months on the 1st, at midnight UTC. Each combination of mode, system and level is its own table, 30 in all. Explore has no score, so it has no table.
+
+There are no accounts. When a round's score would make the top 10 of any of the three tables, the summary asks for a name and a **Submit**, then says where the score placed and picks it out on the table; the name is remembered for next time. A name can appear more than once on a table, once for each score that makes it. A score that wouldn't make a table isn't sent, and the summary just shows the table.
+
+**High scores** on the menu opens the table for the mode, system and level picked there (the Find It table when the mode is Explore). The screen names the table it is on, and **Filter** opens the modes, systems and levels to move to any other table. That doesn't change the round picked in the menu.
+
+Since anyone can type any name, the tables are on trust: the server only turns away scores no round could reach, which is more than 100 points a question (1000 for most rounds, 600 for Brain at Easy). Names are tidied to single spaces, without control characters, at most 20 characters.
+
+When the scores can't be reached, the game plays as usual: the summary leaves the tables out, and the high scores screen says they aren't available.
 
 ## Development
 
@@ -22,8 +34,10 @@ npm run dev         # the game alone, with hot reload
 npm test            # unit tests
 npm run typecheck
 npm run build       # production build in dist/
-npm run serve       # build, then run it with the real Worker locally
+npm run serve       # build, then run it with the Worker and a local database, so high scores work
 ```
+
+`npm run dev` runs the game without the Worker, so there are no high scores in it. `npm run serve` runs the real Worker with a local D1 database (in `.wrangler/`) at <http://localhost:8787/>.
 
 In `npm run dev` the game is on `window.app`, to poke at from the console.
 
@@ -46,7 +60,11 @@ One-time setup in the Cloudflare dashboard:
 3. Build command `npm test && npm run build`, deploy command `npx wrangler deploy`.
 4. Production branch `main`; turn on **builds for non-production branches** for preview URLs.
 
-`wrangler.jsonc` sets up a small Worker (`worker/index.ts`) that answers `/api/*` (for now just `/api/health`) and serves `dist/` for everything else.
+`wrangler.jsonc` sets up a small Worker (`worker/index.ts`) that answers `/api/scores` and `/api/health`, and serves `dist/` for everything else.
+
+High scores are stored in a [D1](https://developers.cloudflare.com/d1/) database named `body-quiz-scores`, bound to the Worker as `DB`. `wrangler deploy` creates it on the first deploy (or binds it if it already exists), and the Worker creates its table on first use, so there is no setup step. If the build can't create databases, create it once with `npx wrangler d1 create body-quiz-scores` and add the `database_id` it prints to `wrangler.jsonc`. Preview builds of other branches use the same database.
+
+To look at or clean up scores: `npx wrangler d1 execute body-quiz-scores --remote --command "SELECT * FROM scores ORDER BY created_at DESC LIMIT 20"`, and `DELETE FROM scores WHERE id = …` to remove one.
 
 ## Files
 
@@ -57,9 +75,11 @@ One-time setup in the Cloudflare dashboard:
 | `src/game.ts` | A round: picking questions and options, answers, scoring |
 | `src/body.ts` | The 3D body: loading its parts, layers, peeling, glows, ghosts |
 | `src/view.ts` | The camera and canvas: turning and zooming, flying to a part, telling which part was tapped |
-| `src/app.ts` | The screens: menu, a round's questions and answers, Explore, the summary |
+| `src/app.ts` | The screens: menu, a round's questions and answers, Explore, the summary, the high scores |
+| `src/leaderboard.ts` | High-score rules shared by the game and the Worker: tables, periods, names, limits |
+| `src/highscores.ts` | High-score tables and the submit form, and talking to `/api/scores` |
 | `src/settings.ts` | The player's choices and best scores, kept in the browser |
 | `src/rng.ts` | The seeded random numbers a round's questions come from |
 | `scripts/build-body.py` | Builds `public/body/` from BodyParts3D |
-| `worker/index.ts` | Cloudflare Worker: `/api/*` and the game's files |
+| `worker/index.ts` | Cloudflare Worker: the `/api/scores` endpoint over D1, and the game's files |
 | `tests/` | Vitest unit tests |

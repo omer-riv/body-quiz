@@ -30,6 +30,7 @@
       </div>
       <button id="start" class="primary">Start</button>
       <p id="best" class="best"></p>
+      <button id="open-scores" class="ghost">High scores</button>
       <p id="credit" class="credit"></p>
     </section>
 
@@ -69,9 +70,25 @@
       <h1 id="summary-title"></h1>
       <p id="summary-score" class="big"></p>
       <p id="summary-best" class="best"></p>
+      <div id="summary-scores"></div>
       <ol id="summary-list"></ol>
       <button id="again" class="primary">Play again</button>
       <button id="to-menu" class="ghost">Menu</button>
+    </section>
+
+    <section id="scores" class="panel" hidden>
+      <h1>High scores</h1>
+      <button id="scores-filter" aria-expanded="false" aria-controls="scores-filters"><span id="scores-round"></span><b>Filter</b></button>
+      <div id="scores-filters" hidden>
+        <h2>Mode</h2>
+        <div id="scores-modes" class="choices"></div>
+        <h2>System</h2>
+        <div id="scores-systems" class="choices"></div>
+        <h2>Level</h2>
+        <div id="scores-levels" class="choices"></div>
+      </div>
+      <div id="scores-tables"></div>
+      <button id="scores-back" class="ghost">Back</button>
     </section>
 
     <script type="module" src="./src/main.ts"></script>

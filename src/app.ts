@@ -2,6 +2,8 @@
 import { Body, type Part } from './body';
 import { factFor } from './facts';
 import { MODE_NAMES, Round, pickQuestions, FIND_POINTS, type ModeId } from './game';
+import { scoreTables, summaryScores } from './highscores';
+import { BOARD_SYSTEMS, LEVELS, RANKED_MODES, categoryFor, categoryOf, scoresViewFor, type Category } from './leaderboard';
 import { makeRng } from './rng';
 import { bestKey, bestScore, loadSettings, recordScore, saveSettings } from './settings';
 import {
@@ -34,6 +36,8 @@ export class App {
   private readonly view = new View($<HTMLCanvasElement>('scene'), this.body);
   private readonly settings = loadSettings();
   private round: Round | null = null;
+  /** The table the high scores screen is on. */
+  private scoresView: Category = scoresViewFor(this.settings);
   private playing: ModeId | null = null;
   /** Every structure of the round's level, by name and by part. */
   private byName = new Map<string, Entry>();
@@ -93,6 +97,9 @@ export class App {
     $('start').onclick = () => this.play();
     $('again').onclick = () => this.play();
     $('to-menu').onclick = () => this.showMenu();
+    $('open-scores').onclick = () => this.showScores();
+    $('scores-back').onclick = () => this.showMenu();
+    $('scores-filter').onclick = () => this.setScoresFilter($('scores-filter').getAttribute('aria-expanded') !== 'true');
   }
 
   private menuChanged(): void {
@@ -107,12 +114,53 @@ export class App {
     this.stop();
     $('hud').hidden = true;
     $('summary').hidden = true;
+    $('scores').hidden = true;
     $('menu').hidden = false;
     this.menuChanged();
     this.body.setLayers(MENU_LAYERS);
     this.view.inset = { top: 0, bottom: innerWidth < 760 ? $('menu').offsetHeight : 0 };
     this.view.home();
     this.view.autoRotate = true;
+  }
+
+  /** The high scores screen: it opens on the table of the round picked in the menu, and its filter moves it to any other. */
+  private showScores(): void {
+    this.scoresView = scoresViewFor(this.settings);
+    $('menu').hidden = true;
+    $('scores').hidden = false;
+    this.setScoresFilter(false);
+    this.drawScores();
+    this.view.inset = { top: 0, bottom: innerWidth < 760 ? $('scores').offsetHeight : 0 };
+    this.view.home();
+  }
+
+  private setScoresFilter(open: boolean): void {
+    $('scores-filters').hidden = !open;
+    $('scores-filter').setAttribute('aria-expanded', String(open));
+  }
+
+  /** The table on show, named above it, and the filter's choices. They don't change the round picked in the menu. */
+  private drawScores(): void {
+    const view = this.scoresView;
+    const systemName = (v: Category['system']) => (v === 'all' ? 'Everything' : SYSTEM_NAMES[v]);
+    $('scores-round').textContent = `${MODE_NAMES[view.mode]} · ${systemName(view.system)} · ${LEVEL_NAMES[view.level]}`;
+    $('scores-tables').replaceChildren(scoreTables(categoryOf(view.mode, view.system, view.level)));
+    const choice = <K extends keyof Category>(host: string, key: K, values: readonly Category[K][], label: (v: Category[K]) => string) =>
+      $(host).replaceChildren(
+        ...values.map((value) => {
+          const button = document.createElement('button');
+          button.textContent = label(value);
+          button.setAttribute('aria-pressed', String(value === view[key]));
+          button.onclick = () => {
+            this.scoresView = { ...view, [key]: value };
+            this.drawScores();
+          };
+          return button;
+        }),
+      );
+    choice('scores-modes', 'mode', RANKED_MODES, (m) => MODE_NAMES[m]);
+    choice('scores-systems', 'system', BOARD_SYSTEMS, systemName);
+    choice('scores-levels', 'level', LEVELS, (l) => LEVEL_NAMES[l]);
   }
 
   // ---- A round -------------------------------------------------------------
@@ -335,6 +383,9 @@ export class App {
     $('summary-title').textContent = share === 1 ? 'Flawless!' : share >= 0.8 ? 'Great round' : share >= 0.5 ? 'Nice work' : 'Keep exploring';
     $('summary-score').innerHTML = `${round.score} <small>/ ${round.maxScore}</small>`;
     $('summary-best').textContent = isBest ? 'New personal best!' : `Your best: ${bestScore(bestKey(this.settings))}`;
+    // The shared tables fill in once they load, and stay empty when they can't be reached.
+    const category = categoryFor(this.settings);
+    $('summary-scores').replaceChildren(...(category ? [summaryScores(category, round.score)] : []));
     $('summary-list').replaceChildren(
       ...round.results.map((result) => {
         const li = document.createElement('li');
