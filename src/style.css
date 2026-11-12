@@ -102,6 +102,12 @@ button[aria-pressed='true'] { background: rgba(53, 200, 255, 0.2); border-color:
 #summary .scores button + button { margin-top: 0; }
 .best + .ghost { margin-top: 8px; }
 #scores-back { margin-top: 16px; }
+#scores-filter { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; margin-top: 8px; text-align: left; font-weight: 600; }
+#scores-filter b { color: var(--accent); font-size: 0.85rem; font-weight: 600; flex: none; }
+#scores-filter b::after { content: ' ▾'; }
+#scores-filter[aria-expanded='true'] b::after { content: ' ▴'; }
+#scores-filters { margin-bottom: 14px; }
+#scores-filters .choices button { padding: 7px 10px; font-size: 0.9rem; }
 
 /* High scores */
 .scores-tabs { margin: 8px 0 10px; }

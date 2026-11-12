@@ -20,7 +20,7 @@ Find It and Name It have shared high-score tables, the same for everyone who pla
 
 There are no accounts. When a round's score would make the top 10 of any of the three tables, the summary asks for a name and a **Submit**, then says where the score placed and picks it out on the table; the name is remembered for next time. A name can appear more than once on a table, once for each score that makes it. A score that wouldn't make a table isn't sent, and the summary just shows the table.
 
-**High scores** on the menu opens the table for the mode, system and level picked there (the Find It table when the mode is Explore).
+**High scores** on the menu opens the table for the mode, system and level picked there (the Find It table when the mode is Explore). The screen names the table it is on, and **Filter** opens the modes, systems and levels to move to any other table. That doesn't change the round picked in the menu.
 
 Since anyone can type any name, the tables are on trust: the server only turns away scores no round could reach, which is more than 100 points a question (1000 for most rounds, 600 for Brain at Easy). Names are tidied to single spaces, without control characters, at most 20 characters.
 

@@ -78,7 +78,15 @@
 
     <section id="scores" class="panel" hidden>
       <h1>High scores</h1>
-      <p id="scores-round" class="tagline"></p>
+      <button id="scores-filter" aria-expanded="false" aria-controls="scores-filters"><span id="scores-round"></span><b>Filter</b></button>
+      <div id="scores-filters" hidden>
+        <h2>Mode</h2>
+        <div id="scores-modes" class="choices"></div>
+        <h2>System</h2>
+        <div id="scores-systems" class="choices"></div>
+        <h2>Level</h2>
+        <div id="scores-levels" class="choices"></div>
+      </div>
       <div id="scores-tables"></div>
       <button id="scores-back" class="ghost">Back</button>
     </section>
