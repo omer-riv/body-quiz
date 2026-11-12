@@ -2,16 +2,74 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#05070c" />
+    <meta name="description" content="A 3D anatomy quiz: find every bone, muscle and organ in the human body." />
     <title>Body Quiz</title>
     <link rel="stylesheet" href="./src/style.css" />
   </head>
   <body>
-    <canvas id="scene"></canvas>
-    <div id="hud">
+    <div id="stage"><canvas id="scene"></canvas></div>
+
+    <div id="loading">
       <h1>Body Quiz</h1>
-      <p>Coming soon: find every bone, muscle and organ in 3D.</p>
+      <div class="bar"><div id="loading-bar"></div></div>
+      <p id="loading-text">Loading the body…</p>
     </div>
+
+    <section id="menu" class="panel" hidden>
+      <h1>Body Quiz</h1>
+      <p class="tagline">Find every bone, muscle and organ.</p>
+      <h2>Mode</h2>
+      <div id="modes" class="choices"></div>
+      <h2>System</h2>
+      <div id="systems" class="choices"></div>
+      <div id="level-block">
+        <h2>Level</h2>
+        <div id="levels" class="choices"></div>
+      </div>
+      <button id="start" class="primary">Start</button>
+      <p id="best" class="best"></p>
+      <p id="credit" class="credit"></p>
+    </section>
+
+    <div id="hud" hidden>
+      <header id="top">
+        <button id="quit" class="icon" aria-label="Back to the menu">✕</button>
+        <div id="prompt"><small id="prompt-kind"></small><strong id="prompt-text"></strong></div>
+        <div id="status"><span id="progress"></span><strong id="score"></strong></div>
+      </header>
+      <div id="tries"></div>
+      <div id="toast" hidden></div>
+      <div id="bottom">
+        <div id="options" hidden></div>
+        <div id="card" hidden>
+          <div><strong id="card-name"></strong><small id="card-sub"></small></div>
+          <div class="card-actions">
+            <button id="card-focus">Isolate</button>
+            <button id="card-hide">Hide</button>
+          </div>
+        </div>
+        <button id="next" class="primary" hidden>Next</button>
+        <div id="tools">
+          <button id="home" title="See the whole body">Whole body</button>
+          <button id="peel" title="Tap parts to take them away" aria-pressed="false">Peel</button>
+          <button id="restore" hidden>Put back</button>
+          <button id="skip" hidden>Show me</button>
+        </div>
+        <nav id="layers" aria-label="Layers"></nav>
+      </div>
+    </div>
+
+    <section id="summary" class="panel" hidden>
+      <h1 id="summary-title"></h1>
+      <p id="summary-score" class="big"></p>
+      <p id="summary-best" class="best"></p>
+      <ol id="summary-list"></ol>
+      <button id="again" class="primary">Play again</button>
+      <button id="to-menu" class="ghost">Menu</button>
+    </section>
+
     <script type="module" src="./src/main.ts"></script>
   </body>
 </html>
