@@ -8,6 +8,8 @@ A 3D anatomy quiz game (working title), in the spirit of Landfall: plain TypeScr
 - **Name It**: a structure lights up inside a see-through body, and you pick its name from four. 100 points.
 - **Explore**: tap anything to see its name. **Isolate** shows it alone; **Hide** takes it away.
 
+Once a question is answered, the game says what the structure does and one fun fact about it, where it has them (`src/facts.ts`; most are still to be written, and `npm run missing-facts` lists which).
+
 A round is 10 questions from one **system** (Skeleton, Muscles, Organs, Brain, or Everything) at one **level**. Easy asks for what most people have heard of (the skull, the biceps, the liver), Medium for more (the frontal bone, the rotator cuff, the spleen), Hard for everything the model has, about 340 structures. Your best score for each combination is kept in the browser.
 
 Drag to turn the body, pinch or scroll to zoom, drag with two fingers (or the right mouse button) to move.
@@ -51,6 +53,7 @@ One-time setup in the Cloudflare dashboard:
 | Path | What it is |
 | --- | --- |
 | `src/structures.ts` | What is asked: the rules that turn the model's 933 parts into structures, per system and level |
+| `src/facts.ts` | What each structure does and a fun fact about it, shown after its question |
 | `src/game.ts` | A round: picking questions and options, answers, scoring |
 | `src/body.ts` | The 3D body: loading its parts, layers, peeling, glows, ghosts |
 | `src/view.ts` | The camera and canvas: turning and zooming, flying to a part, telling which part was tapped |
