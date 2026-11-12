@@ -2,6 +2,8 @@
 import { Body, type Part } from './body';
 import { factFor } from './facts';
 import { MODE_NAMES, Round, pickQuestions, FIND_POINTS, type ModeId } from './game';
+import { scoreTables, summaryScores } from './highscores';
+import { categoryFor, categoryOf, scoresViewFor } from './leaderboard';
 import { makeRng } from './rng';
 import { bestKey, bestScore, loadSettings, recordScore, saveSettings } from './settings';
 import {
@@ -93,6 +95,8 @@ export class App {
     $('start').onclick = () => this.play();
     $('again').onclick = () => this.play();
     $('to-menu').onclick = () => this.showMenu();
+    $('open-scores').onclick = () => this.showScores();
+    $('scores-back').onclick = () => this.showMenu();
   }
 
   private menuChanged(): void {
@@ -107,12 +111,24 @@ export class App {
     this.stop();
     $('hud').hidden = true;
     $('summary').hidden = true;
+    $('scores').hidden = true;
     $('menu').hidden = false;
     this.menuChanged();
     this.body.setLayers(MENU_LAYERS);
     this.view.inset = { top: 0, bottom: innerWidth < 760 ? $('menu').offsetHeight : 0 };
     this.view.home();
     this.view.autoRotate = true;
+  }
+
+  /** The high scores screen: the shared table of the round picked in the menu. */
+  private showScores(): void {
+    const { mode, system, level } = scoresViewFor(this.settings);
+    $('menu').hidden = true;
+    $('scores').hidden = false;
+    $('scores-round').textContent = `${MODE_NAMES[mode]} · ${system === 'all' ? 'Everything' : SYSTEM_NAMES[system]} · ${LEVEL_NAMES[level]}`;
+    $('scores-tables').replaceChildren(scoreTables(categoryOf(mode, system, level)));
+    this.view.inset = { top: 0, bottom: innerWidth < 760 ? $('scores').offsetHeight : 0 };
+    this.view.home();
   }
 
   // ---- A round -------------------------------------------------------------
@@ -335,6 +351,9 @@ export class App {
     $('summary-title').textContent = share === 1 ? 'Flawless!' : share >= 0.8 ? 'Great round' : share >= 0.5 ? 'Nice work' : 'Keep exploring';
     $('summary-score').innerHTML = `${round.score} <small>/ ${round.maxScore}</small>`;
     $('summary-best').textContent = isBest ? 'New personal best!' : `Your best: ${bestScore(bestKey(this.settings))}`;
+    // The shared tables fill in once they load, and stay empty when they can't be reached.
+    const category = categoryFor(this.settings);
+    $('summary-scores').replaceChildren(...(category ? [summaryScores(category, round.score)] : []));
     $('summary-list').replaceChildren(
       ...round.results.map((result) => {
         const li = document.createElement('li');

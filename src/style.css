@@ -27,9 +27,9 @@ button.ghost { background: transparent; width: 100%; }
 button[aria-pressed='true'] { background: rgba(53, 200, 255, 0.2); border-color: var(--accent); color: #fff; }
 
 .panel { position: fixed; z-index: 5; background: var(--panel); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid var(--line); padding: 20px; overflow-y: auto; }
-#menu, #summary { left: 0; right: 0; bottom: 0; max-height: 78vh; border-radius: 22px 22px 0 0; border-bottom: 0; padding-bottom: calc(18px + var(--bottom)); }
+#menu, #summary, #scores { left: 0; right: 0; bottom: 0; max-height: 78vh; border-radius: 22px 22px 0 0; border-bottom: 0; padding-bottom: calc(18px + var(--bottom)); }
 @media (min-width: 760px) {
-  #menu, #summary { left: 28px; right: auto; top: 28px; bottom: 28px; width: 380px; max-height: none; border-radius: 22px; border: 1px solid var(--line); }
+  #menu, #summary, #scores { left: 28px; right: auto; top: 28px; bottom: 28px; width: 380px; max-height: none; border-radius: 22px; border: 1px solid var(--line); }
 }
 .tagline { margin: 2px 0 4px; color: var(--dim); }
 .choices { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -99,6 +99,30 @@ button[aria-pressed='true'] { background: rgba(53, 200, 255, 0.2); border-color:
 #summary-list li b { font-variant-numeric: tabular-nums; color: var(--good); }
 #summary-list li.missed b { color: var(--bad); }
 #summary button + button { margin-top: 8px; }
+#summary .scores button + button { margin-top: 0; }
+.best + .ghost { margin-top: 8px; }
+#scores-back { margin-top: 16px; }
+
+/* High scores */
+.scores-tabs { margin: 8px 0 10px; }
+.scores-tabs button { flex: 1 1 0; padding: 7px 6px; font-size: 0.85rem; }
+.scores-form { display: flex; gap: 8px; margin: 8px 0 6px; }
+.scores-form input { flex: 1; min-width: 0; font: inherit; color: var(--text); background: rgba(255, 255, 255, 0.07); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.scores-form input:focus { outline: none; border-color: var(--accent); }
+.scores-form button { width: auto; padding: 10px 18px; font-size: 1rem; }
+.scores-note { color: var(--dim); font-size: 0.88rem; margin: 10px 0; text-align: center; }
+.scores-note.bad { color: var(--bad); }
+.scores-note:empty { display: none; }
+.scores-placed { font-weight: 700; color: var(--good); margin: 0 0 8px; }
+.scores-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.scores-list li { display: grid; grid-template-columns: 1.6em 1fr auto 4.2em; align-items: baseline; gap: 10px; padding: 8px 12px; font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+.scores-list li + li { border-top: 1px solid var(--line); }
+.scores-list li.mine { background: rgba(53, 200, 255, 0.16); font-weight: 700; }
+.scores-rank { color: var(--dim); font-weight: 700; }
+.scores-list li:nth-child(-n + 3) .scores-rank { color: var(--accent); }
+.scores-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scores-score { font-weight: 600; }
+.scores-date { color: var(--dim); font-size: 0.78rem; text-align: right; }
 @media (max-width: 480px) {
   #layers { gap: 4px; }
   #layers button { font-size: 0.7rem; padding: 9px 2px; }
