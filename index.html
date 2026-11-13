@@ -5,7 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
     <meta name="theme-color" content="#05070c" />
     <meta name="description" content="A 3D anatomy quiz: find every bone, muscle and organ in the human body." />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Body Quiz" />
     <title>Body Quiz</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="./icons/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
     <link rel="stylesheet" href="./src/style.css" />
   </head>
   <body>
@@ -31,6 +39,7 @@
       <button id="start" class="primary">Start</button>
       <p id="best" class="best"></p>
       <button id="open-scores" class="ghost">High scores</button>
+      <button id="install" class="ghost" hidden>Install the app</button>
       <p id="credit" class="credit"></p>
     </section>
 

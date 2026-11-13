@@ -14,7 +14,14 @@ A round is 10 questions from one **system** (Skeleton, Muscles, Organs, Brain, o
 
 Drag to turn the body, pinch or scroll to zoom, drag with two fingers (or the right mouse button) to move.
 
-## High scores
+## Installing as an app
+
+The game is a Progressive Web App. A browser that supports it offers to install it: **Install the app** on the menu in Chrome and Edge, or **Share → Add to Home Screen** in Safari on iPhone and iPad. Installed, it opens full screen from its own icon.
+
+The first visit caches the whole game, 3D body included (about 15 MB), so after that it loads at once and plays offline, installed or not. High scores need a connection: offline, the summary leaves the tables out, as when the server can't be reached.
+
+A new version is picked up on the next visit after it is published, and the one after that runs it. Only files that changed are downloaded again, so the body is fetched again only when `npm run build-body` changed it.
+
 
 Find It and Name It have shared high-score tables, the same for everyone who plays: **This week**, **This month** and **All time**. Weeks start on Monday and months on the 1st, at midnight UTC. Each combination of mode, system and level is its own table, 30 in all. Explore has no score, so it has no table.
 
@@ -37,7 +44,7 @@ npm run build       # production build in dist/
 npm run serve       # build, then run it with the Worker and a local database, so high scores work
 ```
 
-`npm run dev` runs the game without the Worker, so there are no high scores in it. `npm run serve` runs the real Worker with a local D1 database (in `.wrangler/`) at <http://localhost:8787/>.
+`npm run dev` runs the game without the Worker, so there are no high scores in it, and without the service worker, so nothing is cached. To try the app offline, use `npm run build && npm run preview` or `npm run serve`. `npm run serve` runs the real Worker with a local D1 database (in `.wrangler/`) at <http://localhost:8787/>.
 
 In `npm run dev` the game is on `window.app`, to poke at from the console.
 
@@ -77,6 +84,9 @@ To look at or clean up scores: `npx wrangler d1 execute body-quiz-scores --remot
 | `src/view.ts` | The camera and canvas: turning and zooming, flying to a part, telling which part was tapped |
 | `src/app.ts` | The screens: menu, a round's questions and answers, Explore, the summary, the high scores |
 | `src/leaderboard.ts` | High-score rules shared by the game and the Worker: tables, periods, names, limits |
+| `src/pwa.ts` | Installing as an app: registering the service worker and the Install button |
+| `src/service-worker.js` | The service worker, which caches the game to play offline; `vite.config.ts` turns it into `sw.js` with the list of files to cache |
+| `public/manifest.webmanifest`, `public/icons/` | The app's name, colours and icons; the PNGs are drawn from `icon.svg` |
 | `src/highscores.ts` | High-score tables and the submit form, and talking to `/api/scores` |
 | `src/settings.ts` | The player's choices and best scores, kept in the browser |
 | `src/rng.ts` | The seeded random numbers a round's questions come from |
