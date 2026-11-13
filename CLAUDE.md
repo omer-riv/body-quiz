@@ -38,6 +38,8 @@ npm run typecheck
 - Ask follow-up questions before starting, and again whenever a choice comes up that the request doesn't settle, to check you and the user agree on what to build. Don't guess at what they want.
 - Make every feature on its own branch and open a pull request for it, one feature per pull request.
 - Before merging, rebase the branch on the latest `main` (`git fetch origin main && git rebase origin/main`), run the checks again, and push.
+- A merge isn't done until `main` has built and deployed. After merging, wait for the **Workers Builds: body-quiz** check on the merge commit on `main` to finish, and see that it passed; then open the live site and check that the game loads and `/api/health` answers. If the build or the deploy failed, tell the user straight away, before anything else, and fix it in a new pull request. If you can't see the check or reach the site, say so and ask the user to look: never report a merge as done without it.
+- Do this only for `main`. On feature branches the Cloudflare build always fails for now (below), so don't wait for it or check it there.
 
 ## Known failures
 
