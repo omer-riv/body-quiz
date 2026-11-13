@@ -1,7 +1,7 @@
 // Shared high-score rules, used by the game in the browser and by the Worker
 // that stores scores (worker/index.ts). Kept free of DOM code for that reason.
-import { ROUND_LENGTH, maxPoints, type ModeId } from './game';
-import { SYSTEMS, type Level, type SystemId } from './structures';
+import { MODE_NAMES, ROUND_LENGTH, maxPoints, type ModeId } from './game';
+import { LEVEL_NAMES, SYSTEMS, SYSTEM_NAMES, type Level, type SystemId } from './structures';
 
 export type Period = 'week' | 'month' | 'all';
 export const PERIODS: Period[] = ['week', 'month', 'all'];
@@ -52,6 +52,10 @@ export interface Category {
   system: RoundSystem;
   level: Level;
 }
+
+export const systemName = (system: RoundSystem) => (system === 'all' ? 'Everything' : SYSTEM_NAMES[system]);
+/** A round kind, as the screens name it: "Find It · Skeleton · Easy". */
+export const roundName = (c: Category) => `${MODE_NAMES[c.mode]} · ${systemName(c.system)} · ${LEVEL_NAMES[c.level]}`;
 
 export const categoryOf = (mode: ModeId, system: RoundSystem, level: Level) => `${mode}:${system}:${level}`;
 

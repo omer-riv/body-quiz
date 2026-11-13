@@ -1,6 +1,6 @@
 // Cloudflare config: a Worker (worker/index.ts) that answers /api/*, keeping
-// the shared high scores in D1, and serves the built game from dist/ for
-// everything else.
+// the shared high scores in D1 and running battles, gives battle links their
+// preview, and serves the built game from dist/ for everything else.
 {
   "name": "body-quiz",
   "compatibility_date": "2026-10-01",
@@ -9,7 +9,7 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/battle"]
   },
   "d1_databases": [
     {
@@ -18,5 +18,11 @@
       // existing one with this name. The Worker creates its table on first use.
       "database_name": "body-quiz-scores"
     }
-  ]
+  ],
+  // Each battle is a Durable Object (worker/battle.ts): it keeps the players'
+  // live connections and the battle's clock.
+  "durable_objects": {
+    "bindings": [{ "name": "BATTLES", "class_name": "BattleRoom" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BattleRoom"] }]
 }

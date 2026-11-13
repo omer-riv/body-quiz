@@ -1,15 +1,17 @@
 // The game on screen: the menu, a round's questions and answers, and the summary.
+import { BATTLE_PATH, canBattle, isBattleCode, type BattleSettings } from './battle';
+import { Battle, PLAY_NAMES, battleSetup, type BattleAsk, type BattleHost } from './battle-ui';
 import { Body, type Part } from './body';
 import { factFor } from './facts';
 import { MODE_NAMES, Round, pickQuestions, FIND_POINTS, type ModeId } from './game';
 import { scoreTables, summaryScores } from './highscores';
-import { BOARD_SYSTEMS, LEVELS, RANKED_MODES, categoryFor, categoryOf, scoresViewFor, type Category } from './leaderboard';
+import { BOARD_SYSTEMS, LEVELS, RANKED_MODES, categoryFor, categoryOf, roundName, scoresViewFor, systemName, type Category } from './leaderboard';
 import { makeRng } from './rng';
 import { MAX_SPEED_BONUS } from './scoring';
 import { search, searchable } from './search';
 import { bestKey, bestScore, loadSettings, markTutorialSeen, recordScore, saveSettings, tutorialSeen } from './settings';
 import {
-  LAYERS, LAYER_NAMES, LEVEL_NAMES, SYSTEMS, SYSTEM_NAMES,
+  LAYERS, LAYER_NAMES, LEVEL_NAMES, SYSTEM_NAMES,
   describe, entries, structureOf, type Entry, type Layer, type Level, type SystemId,
 } from './structures';
 import { STEPS, Tutorial, cameraMove, type Step, type TutorialEvent } from './tutorial';
@@ -36,11 +38,20 @@ const MENU_LAYERS: Layer[] = ['bone', 'organ', 'vessel', 'brain'];
 // How to play starts with skin on, for its step that takes it off.
 const TUTORIAL_LAYERS: Layer[] = ['skin', 'muscle', 'bone', 'organ'];
 
-export class App {
+export class App implements BattleHost {
   private readonly body = new Body();
   private readonly view = new View($<HTMLCanvasElement>('scene'), this.body);
   private readonly settings = loadSettings();
+  /** The kind of round on screen: the one picked in the menu, or a battle's. */
+  private current: Category = this.settings;
   private round: Round | null = null;
+  private readonly battles = new Battle(this);
+  /** How the menu's round is played: alone, or as a battle against friends. Kept while the app is open. */
+  private playBattle = false;
+  /** In a battle's round, and the question of it that is waiting for an answer. */
+  private inBattle = false;
+  private asked: BattleAsk | null = null;
+  private clockTimer = 0;
   /** The table the high scores screen is on. */
   private scoresView: Category = scoresViewFor(this.settings);
   private playing: ModeId | null = null;
@@ -80,6 +91,14 @@ export class App {
     $('loading').hidden = true;
     $('credit').textContent = `3D model: ${this.body.credit}.`;
     this.showMenu();
+
+    // A battle link: battle?b=CODE. Otherwise, back into a battle that was going on when the app closed.
+    const link = location.pathname.endsWith(`/${BATTLE_PATH}`) ? (new URLSearchParams(location.search).get('b') ?? '').toUpperCase() : null;
+    if (link === null) await this.battles.resume();
+    else {
+      history.replaceState(null, '', new URL('./', document.baseURI));
+      if (isBattleCode(link)) await this.battles.open(link);
+    }
   }
 
   // ---- Menu ----------------------------------------------------------------
@@ -107,9 +126,14 @@ export class App {
     };
     const s = this.settings;
     choice('modes', MODES, (m) => `${MODE_NAMES[m]}<small>${MODE_HINTS[m]}</small>`, () => s.mode, (m) => (s.mode = m));
-    choice<SystemId | 'all'>('systems', ['all', ...SYSTEMS], (v) => (v === 'all' ? 'Everything' : SYSTEM_NAMES[v]), () => s.system, (v) => (s.system = v));
+    choice<SystemId | 'all'>('systems', BOARD_SYSTEMS, systemName, () => s.system, (v) => (s.system = v));
     choice<Level>('levels', [1, 2, 3], (l) => LEVEL_NAMES[l], () => s.level, (l) => (s.level = l));
-    $('start').onclick = () => (tutorialSeen() ? this.play() : this.startTutorial('play'));
+    choice<'solo' | 'battle'>('plays', ['solo', 'battle'], (v) => PLAY_NAMES[v], () => (this.playBattle ? 'battle' : 'solo'), (v) => (this.playBattle = v === 'battle'));
+    $('start').onclick = () => {
+      if (this.playBattle && canBattle(s)) this.openOverlay(battleSetup(s, (settings, name) => this.battles.create(settings, name), () => this.showMenu()));
+      else if (tutorialSeen()) this.play();
+      else this.startTutorial('play');
+    };
     $('how-to').onclick = () => this.startTutorial('menu');
     $('again').onclick = () => this.play();
     $('to-menu').onclick = () => this.showMenu();
@@ -123,14 +147,17 @@ export class App {
     $('level-block').hidden = s.mode === 'explore';
     const best = s.mode === 'explore' ? 0 : bestScore(bestKey(s));
     $('best').textContent = best ? `Your best: ${best}` : '';
-    $('start').textContent = s.mode === 'explore' ? 'Explore' : 'Start';
+    // Solo or Battle is offered for rounds with a score, which Explore has none of.
+    $('play-block').hidden = !canBattle(s);
+    $('start').textContent = s.mode === 'explore' ? 'Explore' : this.playBattle ? 'Set up battle' : 'Start';
   }
 
-  private showMenu(): void {
+  showMenu(): void {
     this.stop();
     $('hud').hidden = true;
     $('summary').hidden = true;
     $('scores').hidden = true;
+    $('battle').hidden = true;
     $('menu').hidden = false;
     this.menuChanged();
     this.body.setLayers(MENU_LAYERS);
@@ -158,8 +185,7 @@ export class App {
   /** The table on show, named above it, and the filter's choices. They don't change the round picked in the menu. */
   private drawScores(): void {
     const view = this.scoresView;
-    const systemName = (v: Category['system']) => (v === 'all' ? 'Everything' : SYSTEM_NAMES[v]);
-    $('scores-round').textContent = `${MODE_NAMES[view.mode]} · ${systemName(view.system)} · ${LEVEL_NAMES[view.level]}`;
+    $('scores-round').textContent = roundName(view);
     $('scores-tables').replaceChildren(scoreTables(categoryOf(view.mode, view.system, view.level)));
     const choice = <K extends keyof Category>(host: string, key: K, values: readonly Category[K][], label: (v: Category[K]) => string) =>
       $(host).replaceChildren(
@@ -183,6 +209,12 @@ export class App {
 
   private stop(): void {
     clearTimeout(this.timer);
+    this.stopClock();
+    this.inBattle = false;
+    this.asked = null;
+    $('hud').classList.remove('battling');
+    $('battle-board').replaceChildren();
+    this.current = this.settings;
     this.round = null;
     this.playing = null;
     this.peeling = false;
@@ -199,11 +231,15 @@ export class App {
     this.pointAt(undefined);
   }
 
-  private pool(level: Level): Entry[] {
-    const all = entries([...this.body.parts.values()], level);
-    this.byName = new Map(all.map((e) => [e.name, e]));
-    const system = this.settings.system;
-    return system === 'all' ? all : all.filter((e) => e.system === system);
+  /** The structures a round of this kind draws its questions from. */
+  poolFor(c: Pick<Category, 'system' | 'level'>): Entry[] {
+    const all = entries([...this.body.parts.values()], c.level);
+    return c.system === 'all' ? all : all.filter((e) => e.system === c.system);
+  }
+
+  /** Sets the level whose structures taps and names are read by, on screen from here on. */
+  private useLevel(level: Level): void {
+    this.byName = new Map(entries([...this.body.parts.values()], level).map((e) => [e.name, e]));
   }
 
   private play(): void {
@@ -212,7 +248,7 @@ export class App {
     this.openHud(mode, mode === 'explore' && system === 'all' ? MENU_LAYERS : START_LAYERS[system]);
 
     if (mode === 'explore') {
-      this.pool(3);
+      this.useLevel(3);
       if (!this.findable.length) this.findable = searchable([...this.body.parts.values()]);
       $('prompt-kind').textContent = 'Explore';
       $('prompt-text').textContent = 'Tap any part';
@@ -221,8 +257,8 @@ export class App {
       this.frameSystem();
       return;
     }
-    const pool = this.pool(level);
-    this.round = new Round(mode, pickQuestions(pool, makeRng(Date.now())));
+    this.useLevel(level);
+    this.round = new Round(mode, pickQuestions(this.poolFor(this.settings), makeRng(Date.now())));
     this.frameSystem();
     this.ask();
   }
@@ -233,6 +269,7 @@ export class App {
     $('menu').hidden = true;
     $('summary').hidden = true;
     $('scores').hidden = true;
+    $('battle').hidden = true;
     $('hud').hidden = false;
     this.view.autoRotate = false;
     this.view.inset = { top, bottom: mode === 'name' ? 190 : 110 };
@@ -247,7 +284,7 @@ export class App {
   }
 
   private frameSystem(): void {
-    if (this.settings.system === 'brain') this.view.flyToParts(this.partsOf(['brain']));
+    if (this.current.system === 'brain') this.view.flyToParts(this.partsOf(['brain']));
     else this.view.home();
   }
 
@@ -264,8 +301,10 @@ export class App {
     this.hideToast();
     $('next').hidden = true;
     $('fact').hidden = true;
-    $('progress').textContent = `${round.index + 1} / ${round.questions.length}`;
-    $('score').textContent = String(round.score);
+    if (!this.inBattle) {
+      $('progress').textContent = `${round.index + 1} / ${round.questions.length}`;
+      $('score').textContent = String(round.score);
+    }
     if (round.mode === 'find') {
       if (this.focused) this.body.setFocus(null);
       this.focused = false;
@@ -305,7 +344,7 @@ export class App {
 
   /** The parts that make up the structure a part belongs to at the round's level, or just the part. */
   private groupOf(part: Part): string[] {
-    const level = this.playing === 'explore' ? 3 : this.settings.level;
+    const level = this.playing === 'explore' ? 3 : this.current.level;
     const structure = structureOf(part, level);
     return (structure && this.byName.get(structure.name)?.parts) || [part.id];
   }
@@ -328,7 +367,7 @@ export class App {
     }
 
     const target = round.question!.target;
-    const outcome = round.answer(structureOf(part, this.settings.level)?.name ?? null, Date.now() - this.askedAt);
+    const outcome = round.answer(structureOf(part, this.current.level)?.name ?? null, Date.now() - this.askedAt);
     this.drawTries();
     this.body.glow('hover', []);
     if (outcome === 'correct') {
@@ -338,7 +377,7 @@ export class App {
       this.resolved(true);
     } else {
       this.body.glow('wrong', group);
-      const name = this.settings.level === 3 ? describe(part) : structureOf(part, this.settings.level)?.name ?? describe(part);
+      const name = this.current.level === 3 ? describe(part) : structureOf(part, this.current.level)?.name ?? describe(part);
       if (outcome === 'wrong') {
         this.toast(`That's the ${lower(name)}`, 'wrong');
         clearTimeout(this.timer);
@@ -364,8 +403,9 @@ export class App {
   /** After an answer: a right one with nothing to read moves on by itself, anything else waits for Next. */
   private resolved(correct: boolean): void {
     const round = this.round!;
-    $('score').textContent = String(round.score);
     $('skip').hidden = true;
+    if (this.inBattle) return this.battleAnswered(correct);
+    $('score').textContent = String(round.score);
     clearTimeout(this.timer);
     const fact = factFor(round.question!.target.name);
     $('fact').hidden = !fact;
@@ -391,15 +431,135 @@ export class App {
     if (!round || round.resolved) return;
     const target = round.question!.target;
     const outcome = round.answer(name, Date.now() - this.askedAt);
+    if (outcome !== 'correct') button.classList.add('wrong');
+    this.showName(target, outcome === 'correct');
+  }
+
+  /** Name It, once answered: which name was right. */
+  private showName(target: Entry, correct: boolean): void {
     for (const b of $('options').querySelectorAll('button')) {
       b.disabled = true;
       if (b.textContent === target.name) b.classList.add('right');
     }
-    if (outcome !== 'correct') button.classList.add('wrong');
     this.body.glow('pick', []);
-    this.body.glow(outcome === 'correct' ? 'right' : 'wrong', target.parts);
+    this.body.glow(correct ? 'right' : 'wrong', target.parts);
     $('prompt-text').textContent = target.name;
-    this.resolved(outcome === 'correct');
+    this.resolved(correct);
+  }
+
+  // ---- A battle's round (src/battle-ui.ts says when) ------------------------
+
+  /** A screen over the game: a battle's setup, lobby or results, or its pause. */
+  openOverlay(content: HTMLElement): void {
+    for (const id of ['menu', 'summary', 'scores']) $(id).hidden = true;
+    const panel = $('battle');
+    panel.replaceChildren(content);
+    panel.hidden = false;
+    panel.scrollTop = 0;
+    if ($('hud').hidden) this.view.inset = { top: 0, bottom: innerWidth < 760 ? panel.offsetHeight : 0 };
+  }
+
+  closeOverlay(): void {
+    $('battle').hidden = true;
+  }
+
+  battleStart(s: BattleSettings): void {
+    this.stop();
+    this.current = s;
+    this.inBattle = true;
+    this.useLevel(s.level);
+    // Room at the top for the scoreboard.
+    this.openHud(s.mode, START_LAYERS[s.system], 124);
+    $('hud').classList.add('battling');
+    this.frameSystem();
+    this.battleWait('Get ready!');
+  }
+
+  battleAsk(ask: BattleAsk): void {
+    if (!this.inBattle) return;
+    this.asked = ask;
+    // Each question is a round of one, scored as in a round played alone.
+    this.round = new Round(this.current.mode, [ask.question]);
+    this.ask();
+    // The bonus counts from when the question appeared for everyone, so a slow connection doesn't cost points.
+    this.askedAt = ask.startsAt;
+    $('progress').textContent = ask.progress;
+    this.startClock(ask.startsAt, ask.endsAt);
+  }
+
+  battleWait(text: string): void {
+    if (!this.inBattle) return;
+    this.asked = null;
+    this.round = null;
+    this.stopClock();
+    clearTimeout(this.timer);
+    this.body.clearGlows();
+    this.body.setFocus(null);
+    this.focused = false;
+    this.hideToast();
+    $('options').hidden = true;
+    $('skip').hidden = true;
+    $('tries').replaceChildren();
+    $('prompt-kind').textContent = 'Battle';
+    $('prompt-text').textContent = text;
+    $('progress').textContent = '';
+  }
+
+  battleTimeUp(): void {
+    const round = this.round;
+    if (!this.inBattle || !round || round.resolved) return;
+    const target = round.question!.target;
+    round.skip();
+    if (round.mode === 'find') this.reveal(`Time’s up! Here is the ${lower(target.name)}`);
+    else this.showName(target, false);
+  }
+
+  battleEnd(): void {
+    if (!this.inBattle) return;
+    this.stop();
+    $('hud').hidden = true;
+    this.body.setLayers(MENU_LAYERS);
+    this.view.home();
+    this.view.autoRotate = true;
+  }
+
+  battleHud(board: HTMLElement | null, score: number): void {
+    if (!this.inBattle) return;
+    $('battle-board').replaceChildren(...(board ? [board] : []));
+    $('score').textContent = String(score);
+  }
+
+  /** A battle question is answered or over: the points go to the battle, which brings the next question for everyone. */
+  private battleAnswered(correct: boolean): void {
+    const points = this.round!.results[0].points;
+    this.stopClock();
+    clearTimeout(this.timer);
+    if (correct && this.round!.mode === 'name') this.toast(`+${points}`, 'right');
+    $('prompt-kind').textContent = 'Waiting for the others…';
+    this.asked?.onAnswer(points);
+    this.asked = null;
+  }
+
+  /** The bar that runs down a battle question's time. When it runs out here, the question is over on this screen. */
+  private startClock(startsAt: number, endsAt: number): void {
+    this.stopClock();
+    const bar = $('clock');
+    bar.hidden = false;
+    const tick = () => {
+      const left = endsAt - Date.now();
+      bar.style.setProperty('--left', String(Math.min(1, Math.max(0, left / (endsAt - startsAt)))));
+      bar.classList.toggle('low', left < 5000);
+      if (left > 0) return;
+      this.stopClock();
+      this.battleTimeUp();
+    };
+    tick();
+    if (!bar.hidden) this.clockTimer = window.setInterval(tick, 100);
+  }
+
+  private stopClock(): void {
+    clearInterval(this.clockTimer);
+    $('clock').hidden = true;
   }
 
   private finish(): void {
@@ -548,7 +708,8 @@ export class App {
   // ---- The HUD's buttons ---------------------------------------------------
 
   private buildHud(): void {
-    $('quit').onclick = () => this.showMenu();
+    // In a battle's round the ✕ pauses this screen and offers to leave, since the battle goes on.
+    $('quit').onclick = () => (this.battles.inRound ? this.battles.pause() : this.showMenu());
     $('find').onclick = () => ($('search').hidden ? this.openSearch() : this.closeSearch());
     $('search-input').oninput = () => this.drawFound();
     $('search').onsubmit = (event) => {
@@ -633,7 +794,7 @@ export class App {
     this.afterTutorial = after;
     this.openHud('explore', TUTORIAL_LAYERS, 150);
     $('find').hidden = true;
-    this.pool(3);
+    this.useLevel(3);
     this.tutorial = new Tutorial();
     $('prompt-kind').textContent = 'How to play';
     $('score').textContent = '';

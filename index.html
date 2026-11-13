@@ -36,6 +36,10 @@
         <h2>Level</h2>
         <div id="levels" class="choices"></div>
       </div>
+      <div id="play-block">
+        <h2>Play</h2>
+        <div id="plays" class="choices" role="group" aria-label="Play solo or battle friends"></div>
+      </div>
       <button id="start" class="primary">Start</button>
       <p id="best" class="best"></p>
       <button id="open-scores" class="ghost">High scores</button>
@@ -55,7 +59,9 @@
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
         </button>
         <div id="status"><span id="progress"></span><strong id="score"></strong></div>
+        <div id="clock" hidden></div>
       </header>
+      <div id="battle-board"></div>
       <ul id="search-results" role="listbox" hidden></ul>
       <div id="tries"></div>
       <div id="coach" hidden>
@@ -114,6 +120,8 @@
       <div id="scores-tables"></div>
       <button id="scores-back" class="ghost">Back</button>
     </section>
+
+    <section id="battle" class="panel" hidden></section>
 
     <script type="module" src="./src/main.ts"></script>
   </body>
