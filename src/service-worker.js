@@ -14,12 +14,15 @@ const PRECACHE = self.__PRECACHE__;
 const CACHE = 'body-quiz';
 const scope = self.registration.scope;
 
-// A file's URL → the key it is cached under, which carries its hash.
+// A file's URL → the key it is cached under, which carries its hash. The page
+// is fetched and kept as the scope's own URL, not index.html: Cloudflare
+// answers /index.html with a redirect to /, and Chrome refuses to load a page
+// from a response that was redirected (ERR_FAILED), which broke the whole site.
+const PAGE = scope;
 const KEYS = new Map(PRECACHE.map(([path, hash]) => {
-  const url = new URL(path, scope).href;
+  const url = path === 'index.html' ? PAGE : new URL(path, scope).href;
   return [url, `${url}?v=${hash}`];
 }));
-const PAGE = new URL('index.html', scope).href;
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
@@ -29,7 +32,8 @@ self.addEventListener('install', (event) => {
       // no-cache: revalidate with the server, so the HTTP cache can't hand back an older file.
       const res = await fetch(url, { cache: 'no-cache' });
       if (!res.ok) throw new Error(`${url}: ${res.status}`);
-      await cache.put(key, res);
+      // A redirected response can't answer a page load, so keep a plain copy.
+      await cache.put(key, res.redirected ? new Response(await res.blob(), res) : res);
     }));
     await self.skipWaiting();
   })());
