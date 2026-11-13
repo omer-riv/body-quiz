@@ -58,7 +58,7 @@ What the model has shapes the game: there is skin, the skeleton, the muscles, th
 
 ## Deployment
 
-Hosted on Cloudflare Workers, connected to this GitHub repository (Workers Builds). Every push to `main` runs the tests, builds the game and publishes it; if a test fails, nothing is published. Pushes to other branches get their own preview URL. `.nvmrc` pins the Node version Cloudflare builds with.
+Hosted on Cloudflare Workers, connected to this GitHub repository (Workers Builds). Every push to `main` runs the tests, builds the game and publishes it; if a test fails, nothing is published. Other branches aren't wired up to Cloudflare yet: their build fails and they get no preview URL. `.nvmrc` pins the Node version Cloudflare builds with.
 
 One-time setup in the Cloudflare dashboard:
 
