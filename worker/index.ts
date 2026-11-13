@@ -135,7 +135,7 @@ const escapeHtml = (text: string) => text.replace(/[&<>"]/g, (c) => ({ '&': '&am
 
 /** The page with [Open Graph](https://ogp.me/) tags, which chat apps draw a link's preview from. */
 export function withPreview(html: string, title: string, description: string, pageUrl: string): string {
-  const tags = { 'og:type': 'website', 'og:site_name': 'Body Quiz', 'og:title': title, 'og:description': description, 'og:url': pageUrl };
+  const tags = { 'og:type': 'website', 'og:site_name': 'Vitals', 'og:title': title, 'og:description': description, 'og:url': pageUrl };
   const meta = Object.entries(tags).map(([property, content]) => `<meta property="${property}" content="${escapeHtml(content)}" />`);
   return html.replace('</head>', `${meta.join('')}</head>`);
 }
