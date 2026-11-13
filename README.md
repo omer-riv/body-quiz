@@ -14,6 +14,8 @@ A round is 10 questions from one **system** (Skeleton, Muscles, Organs, Brain, o
 
 Drag to turn the body, pinch or scroll to zoom, drag with two fingers (or the right mouse button) to move.
 
+**How to play** walks through all of this on the real body, one thing at a time: turning, zooming and moving it, **Whole body**, the layers, tapping a part, **Isolate**, **Peel** and **Put back**. Each step waits until you have done what it asks, and **Skip** leaves at any time. It starts by itself before your first round (remembered in the browser), and the menu's **How to play** opens it again.
+
 ## Installing as an app
 
 The game is a Progressive Web App. A browser that supports it offers to install it: **Install the app** on the menu in Chrome and Edge, or **Share → Add to Home Screen** in Safari on iPhone and iPad. Installed, it opens full screen from its own icon.
@@ -85,6 +87,7 @@ To look at or clean up scores: `npx wrangler d1 execute body-quiz-scores --remot
 | `src/body.ts` | The 3D body: loading its parts, layers, peeling, glows, ghosts |
 | `src/view.ts` | The camera and canvas: turning and zooming, flying to a part, telling which part was tapped |
 | `src/app.ts` | The screens: menu, a round's questions and answers, Explore, the summary, the high scores |
+| `src/tutorial.ts` | How to play: its steps, and when each is done |
 | `src/leaderboard.ts` | High-score rules shared by the game and the Worker: tables, periods, names, limits |
 | `src/pwa.ts` | Installing as an app: registering the service worker and the Install button |
 | `src/service-worker.js` | The service worker, which caches the game to play offline; `vite.config.ts` turns it into `sw.js` with the list of files to cache |
