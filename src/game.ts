@@ -34,6 +34,25 @@ export function pickQuestions(pool: readonly Entry[], rng: Rng, length = ROUND_L
     .map((target) => ({ target, options: pickOptions(target, pool, rng) }));
 }
 
+/** A battle's questions: the round's own, and the sudden-death ones for a tie. */
+export interface BattlePlan {
+  main: Question[];
+  tiebreak: Question[];
+}
+
+/**
+ * The questions of a battle, the same for every player with the same seed.
+ * The tiebreak questions are ones the round didn't ask, while the pool has
+ * them; a small pool (Brain at Easy has 6 structures) starts over.
+ */
+export function battlePlan(pool: readonly Entry[], rng: Rng, tiebreaks: number, length = ROUND_LENGTH): BattlePlan {
+  const main = shuffle(pool, rng).slice(0, length);
+  const spare = shuffle(pool.filter((e) => !main.includes(e)), rng);
+  const again = shuffle(main, rng);
+  const ask = (target: Entry): Question => ({ target, options: pickOptions(target, pool, rng) });
+  return { main: main.map(ask), tiebreak: [...spare, ...again].slice(0, tiebreaks).map(ask) };
+}
+
 export interface Result {
   target: Entry;
   /** What the question scored, speed bonus included. */

@@ -18,6 +18,23 @@ Drag to turn the body, pinch or scroll to zoom, drag with two fingers (or the ri
 
 **How to play** walks through all of this on the real body, one thing at a time: turning, zooming and moving it, **Whole body**, the layers, tapping a part, **Isolate**, **Peel** and **Put back**. Each step waits until you have done what it asks, and **Skip** leaves at any time. It starts by itself before your first round (remembered in the browser), and the menu's **How to play** opens it again.
 
+## Battles
+
+Play live against up to 5 friends: everyone gets the same questions at the same moment, with a live scoreboard, and the most points wins. A battle is a way to play a round, not a mode: it works with Find It and Name It, on every system and level. Explore has no score, so it has no battles.
+
+1. Pick the mode, system and level in the menu as usual, switch **Solo** to **⚔️ Battle** above the start button, and tap **Set up battle**.
+2. Choose how long each question lasts (30 seconds by default in Find It, 20 in Name It), type your name and tap **Create battle**.
+3. Send the link to up to 5 friends. Each opens it, types a name and joins the lobby, where everyone sees who is in.
+4. The battle's creator taps **Start the battle** whenever they like. A 3-2-1 countdown runs on every screen at the same moment.
+
+Each question appears for everyone at once, with a bar in the top bar running down its time. It ends when everyone has answered or the time is up, and after a few seconds showing where the structure is, the next one comes for all. Points are worked out as in a round played alone, speed bonus included, and the bonus counts from when the question appeared, so a slower connection doesn't cost points. The scoreboard under the top bar shows everyone's score and a ✓ for who has answered. There are no facts in a battle and no **Next** to tap: the battle moves everyone on together. **Show me** still gives up on a question.
+
+If two or more players are tied for first at the end, they play a **tiebreaker**: sudden-death questions for the tied players only (the others watch), where the most points on the question wins. If they tie again, they go again, up to 3 times, and after that they share the win. Ties lower down just share a place.
+
+The results show everyone's place and score. **Rematch** sets up the same round with new questions and offers it to the others, who tap **Join the rematch**. Battle scores don't go on the high-score tables.
+
+If the app closes or the connection drops during a battle, opening it again goes straight back in, with your score. The ✕ in a battle pauses only your screen, since the battle goes on, and offers **Leave battle**. A battle's link shows its results for a week afterwards. Battles need a connection: offline, a battle can't be made.
+
 ## Installing as an app
 
 The game is a Progressive Web App. A browser that supports it offers to install it: **Install the app** on the menu in Chrome and Edge, or **Share → Add to Home Screen** in Safari on iPhone and iPad. Installed, it opens full screen from its own icon.
@@ -46,10 +63,10 @@ npm run dev         # the game alone, with hot reload
 npm test            # unit tests
 npm run typecheck
 npm run build       # production build in dist/
-npm run serve       # build, then run it with the Worker and a local database, so high scores work
+npm run serve       # build, then run it with the Worker and a local database, so high scores and battles work
 ```
 
-`npm run dev` runs the game without the Worker, so there are no high scores in it, and without the service worker, so nothing is cached. To try the app offline, use `npm run build && npm run preview` or `npm run serve`. `npm run serve` is at <http://localhost:8787/>, with its local D1 database in `.wrangler/`.
+`npm run dev` runs the game without the Worker, so there are no high scores in it and battles can't be made, and without the service worker, so nothing is cached. To try the app offline, use `npm run build && npm run preview` or `npm run serve`. `npm run serve` is at <http://localhost:8787/>, with its local D1 database in `.wrangler/`. To try a battle, open it in two browser windows, one of them private (each window is one player).
 
 In `npm run dev` the game is on `window.app`, to poke at from the console.
 
@@ -72,7 +89,11 @@ One-time setup in the Cloudflare dashboard:
 3. Build command `npm test && npm run build`, deploy command `npx wrangler deploy`.
 4. Production branch `main`; turn on **builds for non-production branches** for preview URLs.
 
-`wrangler.jsonc` sets up a small Worker (`worker/index.ts`) that answers `/api/scores` and `/api/health`, and serves `dist/` for everything else.
+`wrangler.jsonc` sets up a small Worker (`worker/index.ts`) that answers `/api/scores`, `/api/battles` and `/api/health`, gives battle links (`/battle?b=…`) their preview, and serves `dist/` for everything else.
+
+Battles run in [Durable Objects](https://developers.cloudflare.com/durable-objects/): one per battle, bound to the Worker as `BATTLES` (class `BattleRoom` in `worker/battle.ts`, declared with a migration in `wrangler.jsonc`, so `wrangler deploy` creates it). Each one keeps its players' WebSockets and the battle's state, and wakes itself with an alarm when a question's time is up. It uses the WebSocket Hibernation API, so a battle waiting on its players isn't billed for the wait. Lobbies nobody starts are deleted after a day, and finished battles after a week. Durable Objects with SQLite storage are available on the Workers Free plan too.
+
+A battle link opens the game's page with [Open Graph](https://ogp.me/) tags added by the Worker, so the link's preview in a chat says who the battle is from and which round it is. It has no picture.
 
 High scores are stored in a [D1](https://developers.cloudflare.com/d1/) database named `body-quiz-scores`, bound to the Worker as `DB`. `wrangler deploy` creates it on the first deploy (or binds it if it already exists), and the Worker creates its table on first use, so there is no setup step. If the build can't create databases, create it once with `npx wrangler d1 create body-quiz-scores` and add the `database_id` it prints to `wrangler.jsonc`. Preview builds of other branches use the same database.
 
@@ -89,7 +110,7 @@ To look at or clean up scores: `npx wrangler d1 execute body-quiz-scores --remot
 | `src/scoring.ts` | The speed bonus for fast answers |
 | `src/body.ts` | The 3D body: loading its parts, layers, peeling, glows, ghosts |
 | `src/view.ts` | The camera and canvas: turning and zooming, flying to a part, telling which part was tapped |
-| `src/app.ts` | The screens: menu, a round's questions and answers, Explore, the summary, the high scores |
+| `src/app.ts` | The screens: menu, a round's questions and answers (alone or in a battle), Explore, the summary, the high scores |
 | `src/tutorial.ts` | How to play: its steps, and when each is done |
 | `src/leaderboard.ts` | High-score rules shared by the game and the Worker: tables, periods, names, limits |
 | `src/pwa.ts` | Installing as an app: registering the service worker and the Install button |
@@ -99,5 +120,10 @@ To look at or clean up scores: `npx wrangler d1 execute body-quiz-scores --remot
 | `src/settings.ts` | The player's choices and best scores, kept in the browser |
 | `src/rng.ts` | The seeded random numbers a round's questions come from |
 | `scripts/build-body.py` | Builds `public/body/` from BodyParts3D |
-| `worker/index.ts` | Cloudflare Worker: the `/api/scores` endpoint over D1, and the game's files |
+| `src/battle.ts` | Battle rules, shared by the game and the Worker: the lobby, the clock, answers, tiebreaks, standings, settings |
+| `src/battle-client.ts` | The game's side of a battle's connection: making and looking up battles, and the WebSocket, with reconnecting and clock sync |
+| `src/battle-ui.ts` | Battle screens (setup, invitation, lobby, countdown, live scoreboard, results) and following the battle as it goes |
+| `src/dom.ts` | A small element builder for the screens built in code |
+| `worker/index.ts` | Cloudflare Worker: the `/api/scores` endpoint over D1, battles and their link previews, and the game's files |
+| `worker/battle.ts` | The Durable Object that runs one battle: players' WebSockets, storage and the alarm |
 | `tests/` | Vitest unit tests |
