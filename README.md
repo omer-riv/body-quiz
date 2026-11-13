@@ -22,6 +22,7 @@ The first visit caches the whole game, 3D body included (about 15 MB), so after 
 
 A new version is picked up on the next visit after it is published, and the one after that runs it. Only files that changed are downloaded again, so the body is fetched again only when `npm run build-body` changed it.
 
+## High scores
 
 Find It and Name It have shared high-score tables, the same for everyone who plays: **This week**, **This month** and **All time**. Weeks start on Monday and months on the 1st, at midnight UTC. Each combination of mode, system and level is its own table, 30 in all. Explore has no score, so it has no table.
 
@@ -44,7 +45,7 @@ npm run build       # production build in dist/
 npm run serve       # build, then run it with the Worker and a local database, so high scores work
 ```
 
-`npm run dev` runs the game without the Worker, so there are no high scores in it, and without the service worker, so nothing is cached. To try the app offline, use `npm run build && npm run preview` or `npm run serve`. `npm run serve` runs the real Worker with a local D1 database (in `.wrangler/`) at <http://localhost:8787/>.
+`npm run dev` runs the game without the Worker, so there are no high scores in it, and without the service worker, so nothing is cached. To try the app offline, use `npm run build && npm run preview` or `npm run serve`. `npm run serve` is at <http://localhost:8787/>, with its local D1 database in `.wrangler/`.
 
 In `npm run dev` the game is on `window.app`, to poke at from the console.
 

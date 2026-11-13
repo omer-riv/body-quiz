@@ -1,6 +1,6 @@
 # Body Quiz
 
-Body Quiz (working title) is a 3D anatomy quiz game: plain TypeScript, Vite and Three.js in `src/`, a Cloudflare Worker in `worker/`. It follows Landfall (`omer-riv/find-countries`) in its stack, deployment and wording. The README covers how to play, the 3D model and the file layout.
+Read the README first: it says what the game is, how to play, how to run and deploy it, the 3D model and the file layout. This file holds only the rules for working on it. Follow Landfall (`omer-riv/find-countries`) in stack, deployment and wording.
 
 ## Terms
 
@@ -23,7 +23,7 @@ npm test
 npm run typecheck
 ```
 
-`npm test` doesn't open a browser. After changing what is drawn or tapped, run `npm run dev` and look. `npm run dev` has no Worker, so no high scores; `npm run serve` runs the real Worker with a local database.
+`npm test` doesn't open a browser. After changing what is drawn or tapped, run `npm run dev` and look; for anything touching high scores or offline play, use `npm run serve` (the README's Development section says why).
 
 ## Adding things
 
@@ -31,7 +31,7 @@ npm run typecheck
 - A fact: an entry in `FACTS` in `src/facts.ts`, under the structure's name exactly as `RULES` has it. `does` is one plain sentence on what the structure is or does; `fun` is one surprising thing about it. Each is a full sentence of at most 140 characters, in everyday words, and true: check it against a reliable source, and leave a structure out before guessing. Don't open with "Did you know". `npm run missing-facts` lists the structures without one, best known first.
 - A mode or system on the high-score tables: `src/leaderboard.ts` holds the rules the game and the Worker share, so keep it free of DOM code. A new mode with a score goes in `RANKED_MODES`; a new system is on the tables once it is in `SYSTEMS`. `maxScore` must be what a flawless round scores, so change it with the points, and a system with fewer than `ROUND_LENGTH` structures at a level needs its length in `SHORT_ROUNDS`. The tests in `tests/leaderboard.test.ts` check all of this against the model, and fail when a rule in `RULES` changes a short round's length. Category ids are stored with the scores: don't rename them.
 - Every random choice that shapes a question takes an `Rng` (`src/rng.ts`), as `pickOptions` does, so a round can be replayed from its seed. Battles will need that.
-- `public/body/` is generated: change `scripts/build-body.py` and run `npm run build-body`, don't edit the files. They are under BodyParts3D's CC BY-SA licence, and the game must keep showing its credit.
+- `public/body/` is generated: change `scripts/build-body.py` and run `npm run build-body`, don't edit the files. The game must keep showing BodyParts3D's credit (its licence is in the README).
 
 ## Workflow
 
@@ -41,4 +41,4 @@ npm run typecheck
 
 ## Known failures
 
-- The Cloudflare build (Workers Builds) fails on every branch except `main`: Cloudflare isn't wired up for feature branches yet, so they get no preview. That failure on a pull request is expected and isn't caused by the change; run `npm test` and `npm run typecheck` locally instead.
+- The Cloudflare build fails on every branch but `main` (see the README's Deployment section). On a pull request that failure isn't caused by the change: don't try to fix it there, and run the checks above locally instead.
