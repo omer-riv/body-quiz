@@ -48,3 +48,12 @@ export function recordScore(key: string, score: number): boolean {
   write(BEST, { ...all, [key]: score });
   return true;
 }
+
+const TUTORIAL = 'body-quiz:tutorial';
+/** Whether the player has had How to play: it starts by itself before their first round. */
+export function tutorialSeen(): boolean {
+  return read<{ seen?: boolean }>(TUTORIAL, {}).seen === true;
+}
+export function markTutorialSeen(): void {
+  write(TUTORIAL, { seen: true });
+}

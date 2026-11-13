@@ -6,11 +6,12 @@ import { scoreTables, summaryScores } from './highscores';
 import { BOARD_SYSTEMS, LEVELS, RANKED_MODES, categoryFor, categoryOf, scoresViewFor, type Category } from './leaderboard';
 import { makeRng } from './rng';
 import { search, searchable } from './search';
-import { bestKey, bestScore, loadSettings, recordScore, saveSettings } from './settings';
+import { bestKey, bestScore, loadSettings, markTutorialSeen, recordScore, saveSettings, tutorialSeen } from './settings';
 import {
   LAYERS, LAYER_NAMES, LEVEL_NAMES, SYSTEMS, SYSTEM_NAMES,
   describe, entries, structureOf, type Entry, type Layer, type Level, type SystemId,
 } from './structures';
+import { STEPS, Tutorial, cameraMove, type Step, type TutorialEvent } from './tutorial';
 import { View } from './view';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -31,6 +32,8 @@ const START_LAYERS: Record<SystemId | 'all', Layer[]> = {
   brain: ['brain'],
 };
 const MENU_LAYERS: Layer[] = ['bone', 'organ', 'vessel', 'brain'];
+// How to play starts with skin on, for its step that takes it off.
+const TUTORIAL_LAYERS: Layer[] = ['skin', 'muscle', 'bone', 'organ'];
 
 export class App {
   private readonly body = new Body();
@@ -51,6 +54,10 @@ export class App {
   private focused = false;
   private timer = 0;
   private toastTimer = 0;
+  private coachTimer = 0;
+  /** How to play, while it is on, and where it goes when it ends. */
+  private tutorial: Tutorial | null = null;
+  private afterTutorial: 'menu' | 'play' = 'menu';
 
   async start(): Promise<void> {
     this.buildMenu();
@@ -99,7 +106,8 @@ export class App {
     choice('modes', MODES, (m) => `${MODE_NAMES[m]}<small>${MODE_HINTS[m]}</small>`, () => s.mode, (m) => (s.mode = m));
     choice<SystemId | 'all'>('systems', ['all', ...SYSTEMS], (v) => (v === 'all' ? 'Everything' : SYSTEM_NAMES[v]), () => s.system, (v) => (s.system = v));
     choice<Level>('levels', [1, 2, 3], (l) => LEVEL_NAMES[l], () => s.level, (l) => (s.level = l));
-    $('start').onclick = () => this.play();
+    $('start').onclick = () => (tutorialSeen() ? this.play() : this.startTutorial('play'));
+    $('how-to').onclick = () => this.startTutorial('menu');
     $('again').onclick = () => this.play();
     $('to-menu').onclick = () => this.showMenu();
     $('open-scores').onclick = () => this.showScores();
@@ -182,6 +190,10 @@ export class App {
     this.body.clearGlows();
     this.body.setFocus(null);
     this.hideToast();
+    this.tutorial = null;
+    clearTimeout(this.coachTimer);
+    $('coach').hidden = true;
+    this.pointAt(undefined);
   }
 
   private pool(level: Level): Entry[] {
@@ -194,20 +206,7 @@ export class App {
   private play(): void {
     this.stop();
     const { mode, system, level } = this.settings;
-    this.playing = mode;
-    $('menu').hidden = true;
-    $('summary').hidden = true;
-    $('hud').hidden = false;
-    this.view.autoRotate = false;
-    this.view.inset = { top: 84, bottom: mode === 'name' ? 190 : 110 };
-    this.body.setLayers(mode === 'explore' && system === 'all' ? MENU_LAYERS : START_LAYERS[system]);
-    this.drawLayers();
-    for (const id of ['options', 'card', 'fact', 'next', 'skip', 'restore']) $(id).hidden = true;
-    $('peel').hidden = mode === 'name';
-    $('peel').setAttribute('aria-pressed', 'false');
-    $('layers').hidden = mode === 'name';
-    $('find').hidden = mode !== 'explore';
-    $('tries').replaceChildren();
+    this.openHud(mode, mode === 'explore' && system === 'all' ? MENU_LAYERS : START_LAYERS[system]);
 
     if (mode === 'explore') {
       this.pool(3);
@@ -223,6 +222,25 @@ export class App {
     this.round = new Round(mode, pickQuestions(pool, makeRng(Date.now())));
     this.frameSystem();
     this.ask();
+  }
+
+  /** The screen a round is played on, cleared, with these layers on. */
+  private openHud(mode: ModeId, layers: Layer[], top = 84): void {
+    this.playing = mode;
+    $('menu').hidden = true;
+    $('summary').hidden = true;
+    $('scores').hidden = true;
+    $('hud').hidden = false;
+    this.view.autoRotate = false;
+    this.view.inset = { top, bottom: mode === 'name' ? 190 : 110 };
+    this.body.setLayers(layers);
+    this.drawLayers();
+    for (const id of ['options', 'card', 'fact', 'next', 'skip', 'restore']) $(id).hidden = true;
+    $('peel').hidden = mode === 'name';
+    $('peel').setAttribute('aria-pressed', 'false');
+    $('layers').hidden = mode === 'name';
+    $('find').hidden = mode !== 'explore';
+    $('tries').replaceChildren();
   }
 
   private frameSystem(): void {
@@ -304,6 +322,7 @@ export class App {
       $('restore').hidden = false;
       return;
     }
+
     const target = round.question!.target;
     const outcome = round.answer(structureOf(part, this.settings.level)?.name ?? null);
     this.drawTries();
@@ -419,6 +438,7 @@ export class App {
     if (this.peeling && part) {
       this.body.peel(this.groupOf(part));
       $('restore').hidden = false;
+      this.told({ kind: 'peel' });
       return;
     }
     if (this.focused) {
@@ -439,6 +459,7 @@ export class App {
     $('card').hidden = false;
     $('card-name').textContent = name;
     $('card-sub').textContent = `${layers.map((l) => LAYER_NAMES[l]).join(', ')}${count > 1 ? ` · ${count} parts` : ''}`;
+    this.told({ kind: 'select' });
     $('card-focus').textContent = 'Isolate';
   }
 
@@ -537,7 +558,10 @@ export class App {
       else return;
       event.preventDefault();
     };
-    $('home').onclick = () => this.view.home();
+    $('home').onclick = () => {
+      this.view.home();
+      this.told({ kind: 'home' });
+    };
     $('next').onclick = () => this.advance();
     $('skip').onclick = () => {
       const round = this.round;
@@ -549,11 +573,13 @@ export class App {
     $('peel').onclick = () => {
       this.peeling = !this.peeling;
       $('peel').setAttribute('aria-pressed', String(this.peeling));
-      if (this.peeling) this.toast('Tap parts to take them away', '', 1800);
+      // How to play says it in its own card, where the toast would cover it.
+      if (this.peeling && !this.tutorial) this.toast('Tap parts to take them away', '', 1800);
     };
     $('restore').onclick = () => {
       this.body.restore();
       $('restore').hidden = true;
+      this.told({ kind: 'restore' });
     };
     $('card-focus').onclick = () => {
       if (!this.selected.length) return;
@@ -561,12 +587,17 @@ export class App {
       this.body.setFocus(this.focused ? this.selected : null);
       $('card-focus').textContent = this.focused ? 'Show all' : 'Isolate';
       if (this.focused) this.view.flyToParts(this.selected);
+      this.told({ kind: 'isolate', on: this.focused });
     };
     $('card-hide').onclick = () => {
       this.body.peel(this.selected);
       $('restore').hidden = false;
       this.select(null);
+      this.told({ kind: 'peel' });
     };
+    $('coach-skip').onclick = () => this.endTutorial();
+    $('coach-go').onclick = () => this.endTutorial();
+    this.watchCamera();
   }
 
   private drawLayers(): void {
@@ -574,15 +605,95 @@ export class App {
       ...LAYERS.map((layer) => {
         const button = document.createElement('button');
         button.textContent = LAYER_NAMES[layer];
+        button.dataset.layer = layer;
         button.style.setProperty('--dot', LAYER_DOTS[layer]);
         button.setAttribute('aria-pressed', String(this.body.isLayerOn(layer)));
         button.onclick = () => {
-          this.body.setLayer(layer, !this.body.isLayerOn(layer));
-          button.setAttribute('aria-pressed', String(this.body.isLayerOn(layer)));
+          const on = !this.body.isLayerOn(layer);
+          this.body.setLayer(layer, on);
+          button.setAttribute('aria-pressed', String(on));
+          this.told({ kind: 'layer', layer, on });
         };
         return button;
       }),
     );
+  }
+
+  // ---- How to play ---------------------------------------------------------
+
+  /** Starts How to play on the real body. Afterwards it goes back to the menu, or on to the round picked there. */
+  private startTutorial(after: 'menu' | 'play'): void {
+    this.stop();
+    markTutorialSeen();
+    this.afterTutorial = after;
+    this.openHud('explore', TUTORIAL_LAYERS, 150);
+    $('find').hidden = true;
+    this.pool(3);
+    this.tutorial = new Tutorial();
+    $('prompt-kind').textContent = 'How to play';
+    $('score').textContent = '';
+    $('coach').hidden = false;
+    this.view.home();
+    this.showStep(this.tutorial.step);
+  }
+
+  private showStep(step: Step): void {
+    const tutorial = this.tutorial!;
+    const last = tutorial.finished;
+    // Each step starts from where it makes sense: Skin on to take it off, nothing isolated to peel.
+    if (step.id === 'layers' && !this.body.isLayerOn('skin')) {
+      this.body.setLayer('skin', true);
+      this.drawLayers();
+    }
+    $('prompt-text').textContent = step.title;
+    $('progress').textContent = last ? '' : `${tutorial.index + 1} / ${STEP_COUNT}`;
+    $('coach').classList.remove('done');
+    $('coach-text').textContent = matchMedia('(hover: none)').matches ? step.touch : step.mouse;
+    $('coach-skip').hidden = last;
+    $('coach-go').hidden = !last;
+    $('coach-go').textContent = this.afterTutorial === 'play' ? (this.settings.mode === 'explore' ? 'Explore' : 'Start the round') : 'Back to the menu';
+    this.pointAt(step.target);
+  }
+
+  /** Passes what the player did to How to play, and moves on when it finishes a step. */
+  private told(event: TutorialEvent): void {
+    const tutorial = this.tutorial;
+    if (!tutorial || tutorial.finished || $('coach').classList.contains('done') || !tutorial.record(event)) return;
+    $('coach').classList.add('done');
+    this.pointAt(undefined);
+    clearTimeout(this.coachTimer);
+    this.coachTimer = window.setTimeout(() => {
+      if (this.tutorial === tutorial) this.showStep(tutorial.next());
+    }, 900);
+  }
+
+  private endTutorial(): void {
+    const play = this.afterTutorial === 'play';
+    this.stop();
+    if (play) this.play();
+    else this.showMenu();
+  }
+
+  /** Rings the button a step is about. */
+  private pointAt(selector: string | undefined): void {
+    for (const el of document.querySelectorAll('.coach-target')) el.classList.remove('coach-target');
+    if (selector) document.querySelector(selector)?.classList.add('coach-target');
+  }
+
+  /** Tells How to play how the player turned, zoomed and moved the camera. Flights to a part don't count. */
+  private watchCamera(): void {
+    const { camera, controls } = this.view;
+    const snap = () => ({ position: camera.position.clone(), target: controls.target.clone() });
+    let last = snap();
+    // A gesture goes on moving the camera for a moment after the finger lifts.
+    let until = 0;
+    controls.addEventListener('start', () => (until = Infinity));
+    controls.addEventListener('end', () => (until = performance.now() + 700));
+    controls.addEventListener('change', () => {
+      const now = snap();
+      if (this.tutorial && performance.now() < until) this.told({ kind: 'camera', move: cameraMove(last, now) });
+      last = now;
+    });
   }
 
   private toast(text: string, tone: '' | 'right' | 'wrong', ms = 1600): void {
@@ -600,6 +711,8 @@ export class App {
     $('toast').hidden = true;
   }
 }
+
+const STEP_COUNT = STEPS.length - 1;
 
 // "That's the Shinbone (tibia)" reads better as "the shinbone (tibia)", but "Achilles" keeps its capital.
 function lower(name: string): string {

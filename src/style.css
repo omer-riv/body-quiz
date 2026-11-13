@@ -97,6 +97,19 @@ button[aria-pressed='true'] { background: rgba(53, 200, 255, 0.2); border-color:
 .card-actions { display: flex; gap: 6px; }
 .card-actions button { padding: 8px 10px; font-size: 0.85rem; }
 
+/* How to play */
+#coach { position: absolute; top: calc(74px + var(--top)); left: 50%; transform: translateX(-50%); width: calc(100% - 20px); max-width: 520px; display: flex; align-items: center; gap: 10px; background: var(--panel); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--accent); border-radius: 16px; padding: 10px 12px 10px 14px; animation: rise 0.25s ease-out; transition: border-color 0.2s, background 0.2s; }
+#coach p { flex: 1; margin: 0; font-size: 0.95rem; line-height: 1.35; }
+#coach.done { border-color: var(--good); background: rgba(20, 60, 44, 0.85); }
+#coach.done p::before { content: '✓  '; color: var(--good); font-weight: 700; }
+.coach-actions { display: flex; flex-direction: column; gap: 6px; flex: none; }
+.coach-actions button { width: auto; padding: 8px 12px; font-size: 0.85rem; }
+#coach-go { font-size: 0.95rem; padding: 10px 14px; }
+#coach:has(#coach-go:not([hidden])) { flex-direction: column; align-items: stretch; }
+#bottom .coach-target { position: relative; z-index: 1; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); animation: beckon 1.4s ease-in-out infinite; }
+@keyframes beckon { 0%, 100% { box-shadow: 0 0 0 2px var(--accent); } 60% { box-shadow: 0 0 0 10px rgba(53, 200, 255, 0); } }
+@media (prefers-reduced-motion: reduce) { #bottom .coach-target { animation: none; } }
+
 #toast { position: absolute; left: 50%; top: calc(96px + var(--top)); transform: translateX(-50%); max-width: calc(100% - 24px); background: var(--panel); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; font-weight: 600; text-align: center; pointer-events: none !important; animation: pop 0.2s ease-out; }
 #toast.right { border-color: var(--good); color: var(--good); }
 #toast.wrong { border-color: var(--bad); color: #ffb3bd; }
@@ -110,7 +123,7 @@ button[aria-pressed='true'] { background: rgba(53, 200, 255, 0.2); border-color:
 #summary-list li.missed b { color: var(--bad); }
 #summary button + button { margin-top: 8px; }
 #summary .scores button + button { margin-top: 0; }
-.best + .ghost { margin-top: 8px; }
+.best + .ghost, #open-scores + #how-to { margin-top: 8px; }
 #scores-back { margin-top: 16px; }
 #scores-filter { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; margin-top: 8px; text-align: left; font-weight: 600; }
 #scores-filter b { color: var(--accent); font-size: 0.85rem; font-weight: 600; flex: none; }
