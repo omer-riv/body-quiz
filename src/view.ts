@@ -138,7 +138,10 @@ export class View {
     const back = c.z < -0.035;
     // Small things get room around them, to see where in the body they are.
     const half = { w: Math.max(size.x, size.z, 0.07) * 0.68, h: Math.max(size.y, 0.07) * 0.68 };
-    this.flyTo(sphere, new THREE.Vector3(c.x * 2.2, 0.18, back ? -1 : 1), animate, half);
+    // What lies in one half of the brain alone is on its outer face or inside it: look from that side.
+    const halfBrain = ids.every((id) => this.body.parts.get(id)?.layer === 'brain') && Math.abs(c.x) > Math.max(size.x / 2, 0.02);
+    const x = halfBrain ? Math.sign(c.x) * 1.6 : c.x * 2.2;
+    this.flyTo(sphere, new THREE.Vector3(x, 0.18, back ? -1 : 1), animate, half);
   }
 
   /** The whole body, from the front. */

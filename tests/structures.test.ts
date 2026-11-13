@@ -67,6 +67,38 @@ describe('structures', () => {
     }
   });
 
+  it('asks for the lobes of the brain at Easy and Medium, and for their folds and regions at Hard', () => {
+    const brain = (level: Level) => entries(parts, level).filter((e) => e.system === 'brain');
+    for (const level of [1, 2] as Level[]) {
+      const lobes = brain(level).filter((e) => / lobe$/.test(e.name));
+      expect(lobes.map((e) => e.name).sort()).toEqual(['Frontal lobe', 'Occipital lobe', 'Parietal lobe', 'Temporal lobe']);
+      // Every part a Hard round asks about on the cortex belongs to a lobe before that.
+      const inLobes = new Set(lobes.flatMap((e) => e.parts));
+      for (const name of ['Primary visual cortex', "Broca's area", "Wernicke's area", 'Inferior frontal gyrus', 'Fusiform gyrus', 'Angular gyrus']) {
+        for (const id of brain(3).find((e) => e.name === name)!.parts) expect(inLobes.has(id), name).toBe(true);
+      }
+    }
+    expect(brain(3).some((e) => / lobe$/.test(e.name))).toBe(false);
+    expect(brain(3).length).toBeGreaterThanOrEqual(40);
+  });
+
+  it('has the regions the build cuts out: the visual cortex on both sides, the speech areas on the left', () => {
+    const at3 = (name: string) => entries(parts, 3).find((e) => e.name === name)!.parts.map((id) => parts.find((p) => p.id === id)!.name);
+    expect(at3('Primary visual cortex').sort()).toEqual(['left primary visual cortex', 'right primary visual cortex']);
+    expect(at3("Broca's area")).toEqual(["left Broca's area"]);
+    expect(at3("Wernicke's area")).toEqual(["left Wernicke's area"]);
+    // What they were cut from is still there, on both sides.
+    expect(at3('Visual association cortex').length).toBe(2);
+    expect(at3('Inferior frontal gyrus').length).toBe(2);
+    expect(at3('Insula').every((name) => /insula$/.test(name))).toBe(true);
+  });
+
+  it('keeps the thalamus out of the brainstem', () => {
+    const stria = parts.find((p) => p.name === 'left stria medullaris of thalamus')!;
+    expect(structureOf(stria, 1)).toBeNull();
+    expect(structureOf(stria, 3)).toBeNull();
+  });
+
   it('has a name for any part that is tapped', () => {
     for (const part of parts) expect(label(part).length, part.name).toBeGreaterThan(2);
   });
