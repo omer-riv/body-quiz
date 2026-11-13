@@ -8,6 +8,8 @@ A 3D anatomy quiz game (working title), in the spirit of Landfall: plain TypeScr
 - **Name It**: a structure lights up inside a see-through body, and you pick its name from four. 100 points.
 - **Explore**: tap anything to see its name. **Isolate** shows it alone; **Hide** takes it away. **Find** (the magnifier at the top) looks a structure up by name, at any level ("femur", "skull", "liver"), and lights it up where it is: its layer comes on and it is put back if it was peeled.
 
+A right answer also earns a **speed bonus** of up to 50 points, which shrinks steadily from the moment the question appears: 50 for an instant answer, half after half the time, and nothing after 20 seconds in Find It or 10 in Name It. It comes on top of the points for the answer, on any try, so a question is worth at most 150. A round is **Flawless** when every question was right the first time, however long it took.
+
 Once a question is answered, the game says what the structure does and one fun fact about it, where it has them (`src/facts.ts`; most are still to be written, and `npm run missing-facts` lists which).
 
 A round is 10 questions from one **system** (Skeleton, Muscles, Organs, Brain, or Everything) at one **level**. Easy asks for what most people have heard of (the skull, the biceps, the liver), Medium for more (the frontal bone, the rotator cuff, the spleen), Hard for everything the model has, about 340 structures. A system with fewer than 10 structures at a level has a shorter round: Brain at Easy has 6. Your best score for each combination is kept in the browser.
@@ -32,7 +34,7 @@ There are no accounts. When a round's score would make the top 10 of any of the 
 
 **High scores** on the menu opens the table for the mode, system and level picked there (the Find It table when the mode is Explore). The screen names the table it is on, and **Filter** opens the modes, systems and levels to move to any other table. That doesn't change the round picked in the menu.
 
-Since anyone can type any name, the tables are on trust: the server only turns away scores no round could reach, which is more than 100 points a question (1000 for most rounds, 600 for Brain at Easy). Names are tidied to single spaces, without control characters, at most 20 characters.
+Since anyone can type any name, the tables are on trust: the server only turns away scores no round could reach, which is more than 150 points a question, speed bonus included (1500 for most rounds, 900 for Brain at Easy). Scores from before the speed bonus, which stopped at 100 a question, are still on the tables. Names are tidied to single spaces, without control characters, at most 20 characters.
 
 When the scores can't be reached, the game plays as usual: the summary leaves the tables out, and the high scores screen says they aren't available.
 
@@ -84,6 +86,7 @@ To look at or clean up scores: `npx wrangler d1 execute body-quiz-scores --remot
 | `src/facts.ts` | What each structure does and a fun fact about it, shown after its question |
 | `src/search.ts` | Find in Explore: every level's structures, matched against what is typed |
 | `src/game.ts` | A round: picking questions and options, answers, scoring |
+| `src/scoring.ts` | The speed bonus for fast answers |
 | `src/body.ts` | The 3D body: loading its parts, layers, peeling, glows, ghosts |
 | `src/view.ts` | The camera and canvas: turning and zooming, flying to a part, telling which part was tapped |
 | `src/app.ts` | The screens: menu, a round's questions and answers, Explore, the summary, the high scores |

@@ -1,6 +1,6 @@
 // Shared high-score rules, used by the game in the browser and by the Worker
 // that stores scores (worker/index.ts). Kept free of DOM code for that reason.
-import { FIND_POINTS, NAME_POINTS, ROUND_LENGTH, type ModeId } from './game';
+import { ROUND_LENGTH, maxPoints, type ModeId } from './game';
 import { SYSTEMS, type Level, type SystemId } from './structures';
 
 export type Period = 'week' | 'month' | 'all';
@@ -76,12 +76,13 @@ export function parseCategory(category: string): Category | null {
 }
 
 /**
- * The most a round can score: every question right the first time. It keeps
+ * The most a round can score: every question right the first time, with the
+ * whole speed bonus. It keeps
  * out obvious junk, but it is not cheat protection: with names only and no
  * accounts, anyone can post any score a round could reach.
  */
 export function maxScore(c: Category): number {
-  return roundLength(c.system, c.level) * (c.mode === 'find' ? FIND_POINTS[0] : NAME_POINTS);
+  return roundLength(c.system, c.level) * maxPoints(c.mode);
 }
 
 /** Tidies a typed name: no control characters, single spaces, at most MAX_NAME_LENGTH characters. */

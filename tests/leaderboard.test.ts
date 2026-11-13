@@ -62,8 +62,8 @@ describe('maxScore', () => {
   });
 
   it('is lower for a round shorter than 10: Brain at Easy has 6 questions', () => {
-    expect(maxScore({ mode: 'find', system: 'brain', level: 1 })).toBe(600);
-    expect(maxScore({ mode: 'name', system: 'all', level: 1 })).toBe(1000);
+    expect(maxScore({ mode: 'find', system: 'brain', level: 1 })).toBe(900);
+    expect(maxScore({ mode: 'name', system: 'all', level: 1 })).toBe(1500);
   });
 });
 
@@ -185,11 +185,11 @@ describe('the scores Worker', () => {
   });
 
   it('takes a score up to the round’s maximum and no more', async () => {
-    // Brain at Easy has 6 questions, so 600 is flawless there.
-    expect((await post({ category: 'find:brain:1', name: 'x', score: 600 })).status).toBe(201);
-    expect((await post({ category: 'find:brain:1', name: 'x', score: 610 })).status).toBe(400);
-    expect((await post({ category: 'find:brain:2', name: 'x', score: 1000 })).status).toBe(201);
-    expect((await post({ category: 'find:brain:2', name: 'x', score: 1001 })).status).toBe(400);
+    // Brain at Easy has 6 questions, so 900 is the most there.
+    expect((await post({ category: 'find:brain:1', name: 'x', score: 900 })).status).toBe(201);
+    expect((await post({ category: 'find:brain:1', name: 'x', score: 910 })).status).toBe(400);
+    expect((await post({ category: 'find:brain:2', name: 'x', score: 1500 })).status).toBe(201);
+    expect((await post({ category: 'find:brain:2', name: 'x', score: 1501 })).status).toBe(400);
   });
 
   it('turns away bad submissions', async () => {
