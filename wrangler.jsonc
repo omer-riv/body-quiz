@@ -5,6 +5,12 @@
   "name": "body-quiz",
   "compatibility_date": "2026-10-01",
   "main": "worker/index.ts",
+  // Some Israeli mobile carriers' DNS doesn't resolve *.workers.dev, so the
+  // game also lives on its own domain. wrangler deploy creates the DNS record
+  // and certificate. The workers.dev address stays on, since players' progress
+  // is kept per address in their browser.
+  "routes": [{ "pattern": "vitals.smalldetour.app", "custom_domain": true }],
+  "workers_dev": true,
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",

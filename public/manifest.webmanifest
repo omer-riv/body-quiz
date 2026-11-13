@@ -1,6 +1,6 @@
 {
-  "name": "Body Quiz",
-  "short_name": "Body Quiz",
+  "name": "Vitals",
+  "short_name": "Vitals",
   "description": "A 3D anatomy quiz: find every bone, muscle and organ in the human body.",
   "id": "./",
   "start_url": "./",

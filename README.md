@@ -1,6 +1,6 @@
-# Body Quiz
+# Vitals
 
-A 3D anatomy quiz game (working title), in the spirit of Landfall: plain TypeScript, Vite and Three.js in `src/`, a Cloudflare Worker in `worker/`. You turn a real 3D human body, switch its layers on and off, and find or name its bones, muscles and organs.
+A 3D anatomy quiz game, in the spirit of Landfall, played at [vitals.smalldetour.app](https://vitals.smalldetour.app): plain TypeScript, Vite and Three.js in `src/`, a Cloudflare Worker in `worker/`. You turn a real 3D human body, switch its layers on and off, and find or name its bones, muscles and organs.
 
 ## How to play
 
@@ -80,7 +80,7 @@ What the model has shapes the game: there is skin, the skeleton, the muscles, th
 
 ## Deployment
 
-Hosted on Cloudflare Workers, connected to this GitHub repository (Workers Builds). Every push to `main` runs the tests, builds the game and publishes it; if a test fails, nothing is published. Other branches aren't wired up to Cloudflare yet: their build fails and they get no preview URL. `.nvmrc` pins the Node version Cloudflare builds with.
+Hosted on Cloudflare Workers at `vitals.smalldetour.app` (and the Worker's `workers.dev` address), connected to this GitHub repository (Workers Builds). The code, the Worker, the database and the browser storage keys still use the old name `body-quiz`, so renaming the game lost nobody's scores or progress. Every push to `main` runs the tests, builds the game and publishes it; if a test fails, nothing is published. Other branches aren't wired up to Cloudflare yet: their build fails and they get no preview URL. `.nvmrc` pins the Node version Cloudflare builds with.
 
 One-time setup in the Cloudflare dashboard:
 

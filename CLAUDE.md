@@ -1,4 +1,4 @@
-# Body Quiz
+# Vitals
 
 Read the README first: it says what the game is, how to play, how to run and deploy it, the 3D model and the file layout. This file holds only the rules for working on it. Follow Landfall (`omer-riv/find-countries`) in stack, deployment and wording.
 

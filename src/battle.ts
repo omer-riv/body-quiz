@@ -78,7 +78,7 @@ export const battleRound = (s: BattleSettings) => `${roundName(s)} · ${roundLen
 
 export const inviteTitle = (host: string) => `${host} invites you to a battle`;
 export const inviteMessage = (s: BattleSettings) =>
-  `Join my Body Quiz battle: ${battleRound(s)}. Same questions, same moment. Let’s see who wins!`;
+  `Join my Vitals battle: ${battleRound(s)}. Same questions, same moment. Let’s see who wins!`;
 
 // ---- State ------------------------------------------------------------------
 
