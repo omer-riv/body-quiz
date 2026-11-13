@@ -32,3 +32,13 @@ npm run typecheck
 - A mode or system on the high-score tables: `src/leaderboard.ts` holds the rules the game and the Worker share, so keep it free of DOM code. A new mode with a score goes in `RANKED_MODES`; a new system is on the tables once it is in `SYSTEMS`. `maxScore` must be what a flawless round scores, so change it with the points, and a system with fewer than `ROUND_LENGTH` structures at a level needs its length in `SHORT_ROUNDS`. The tests in `tests/leaderboard.test.ts` check all of this against the model, and fail when a rule in `RULES` changes a short round's length. Category ids are stored with the scores: don't rename them.
 - Every random choice that shapes a question takes an `Rng` (`src/rng.ts`), as `pickOptions` does, so a round can be replayed from its seed. Battles will need that.
 - `public/body/` is generated: change `scripts/build-body.py` and run `npm run build-body`, don't edit the files. They are under BodyParts3D's CC BY-SA licence, and the game must keep showing its credit.
+
+## Workflow
+
+- Ask follow-up questions before starting, and again whenever a choice comes up that the request doesn't settle, to check you and the user agree on what to build. Don't guess at what they want.
+- Make every feature on its own branch and open a pull request for it, one feature per pull request.
+- Before merging, rebase the branch on the latest `main` (`git fetch origin main && git rebase origin/main`), run the checks again, and push.
+
+## Known failures
+
+- The Cloudflare build (Workers Builds) fails on every branch except `main`: Cloudflare isn't wired up for feature branches yet, so they get no preview. That failure on a pull request is expected and isn't caused by the change; run `npm test` and `npm run typecheck` locally instead.
