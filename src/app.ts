@@ -5,6 +5,7 @@ import { MODE_NAMES, Round, pickQuestions, FIND_POINTS, type ModeId } from './ga
 import { scoreTables, summaryScores } from './highscores';
 import { BOARD_SYSTEMS, LEVELS, RANKED_MODES, categoryFor, categoryOf, scoresViewFor, type Category } from './leaderboard';
 import { makeRng } from './rng';
+import { MAX_SPEED_BONUS } from './scoring';
 import { search, searchable } from './search';
 import { bestKey, bestScore, loadSettings, markTutorialSeen, recordScore, saveSettings, tutorialSeen } from './settings';
 import {
@@ -52,6 +53,8 @@ export class App {
   private peeling = false;
   private selected: string[] = [];
   private focused = false;
+  /** When the question on screen appeared, for the speed bonus. */
+  private askedAt = 0;
   private timer = 0;
   private toastTimer = 0;
   private coachTimer = 0;
@@ -256,6 +259,7 @@ export class App {
     const round = this.round!;
     const question = round.question;
     if (!question) return this.finish();
+    this.askedAt = Date.now();
     this.body.clearGlows();
     this.hideToast();
     $('next').hidden = true;
@@ -324,7 +328,7 @@ export class App {
     }
 
     const target = round.question!.target;
-    const outcome = round.answer(structureOf(part, this.settings.level)?.name ?? null);
+    const outcome = round.answer(structureOf(part, this.settings.level)?.name ?? null, Date.now() - this.askedAt);
     this.drawTries();
     this.body.glow('hover', []);
     if (outcome === 'correct') {
@@ -386,7 +390,7 @@ export class App {
     const round = this.round;
     if (!round || round.resolved) return;
     const target = round.question!.target;
-    const outcome = round.answer(name);
+    const outcome = round.answer(name, Date.now() - this.askedAt);
     for (const b of $('options').querySelectorAll('button')) {
       b.disabled = true;
       if (b.textContent === target.name) b.classList.add('right');
@@ -406,8 +410,9 @@ export class App {
     this.body.restore();
     $('hud').hidden = true;
     $('summary').hidden = false;
-    const share = round.score / round.maxScore;
-    $('summary-title').textContent = share === 1 ? 'Flawless!' : share >= 0.8 ? 'Great round' : share >= 0.5 ? 'Nice work' : 'Keep exploring';
+    // The title is for what was known, not how fast: the share of the points before the speed bonus.
+    const share = round.results.reduce((sum, r) => sum + r.points - r.bonus, 0) / (round.maxScore - round.questions.length * MAX_SPEED_BONUS);
+    $('summary-title').textContent = round.flawless ? 'Flawless!' : share >= 0.8 ? 'Great round' : share >= 0.5 ? 'Nice work' : 'Keep exploring';
     $('summary-score').innerHTML = `${round.score} <small>/ ${round.maxScore}</small>`;
     $('summary-best').textContent = isBest ? 'New personal best!' : `Your best: ${bestScore(bestKey(this.settings))}`;
     // The shared tables fill in once they load, and stay empty when they can't be reached.
