@@ -5,6 +5,7 @@ import { MODE_NAMES, Round, pickQuestions, FIND_POINTS, type ModeId } from './ga
 import { scoreTables, summaryScores } from './highscores';
 import { BOARD_SYSTEMS, LEVELS, RANKED_MODES, categoryFor, categoryOf, scoresViewFor, type Category } from './leaderboard';
 import { makeRng } from './rng';
+import { search, searchable } from './search';
 import { bestKey, bestScore, loadSettings, recordScore, saveSettings } from './settings';
 import {
   LAYERS, LAYER_NAMES, LEVEL_NAMES, SYSTEMS, SYSTEM_NAMES,
@@ -41,6 +42,10 @@ export class App {
   private playing: ModeId | null = null;
   /** Every structure of the round's level, by name and by part. */
   private byName = new Map<string, Entry>();
+  /** Every structure of every level, for Find in Explore. */
+  private findable: Entry[] = [];
+  private found: Entry[] = [];
+  private foundIndex = 0;
   private peeling = false;
   private selected: string[] = [];
   private focused = false;
@@ -171,6 +176,7 @@ export class App {
     this.playing = null;
     this.peeling = false;
     this.selected = [];
+    this.closeSearch();
     this.focused = false;
     this.body.restore();
     this.body.clearGlows();
@@ -200,10 +206,12 @@ export class App {
     $('peel').hidden = mode === 'name';
     $('peel').setAttribute('aria-pressed', 'false');
     $('layers').hidden = mode === 'name';
+    $('find').hidden = mode !== 'explore';
     $('tries').replaceChildren();
 
     if (mode === 'explore') {
       this.pool(3);
+      if (!this.findable.length) this.findable = searchable([...this.body.parts.values()]);
       $('prompt-kind').textContent = 'Explore';
       $('prompt-text').textContent = 'Tap any part';
       $('progress').textContent = '';
@@ -421,16 +429,114 @@ export class App {
     this.body.glow('hover', []);
     this.body.glow('pick', this.selected);
     $('card').hidden = !part;
-    if (!part) return;
-    $('card-name').textContent = describe(part);
-    $('card-sub').textContent = `${LAYER_NAMES[part.layer]}${this.selected.length > 1 ? ` · ${this.selected.length} parts` : ''}`;
+    if (part) this.drawCard(describe(part));
+  }
+
+  /** The card for what is selected: its name, its layers and how many parts it is. */
+  private drawCard(name: string): void {
+    const layers = [...new Set(this.selected.map((id) => this.body.parts.get(id)!.layer))];
+    const count = this.selected.length;
+    $('card').hidden = false;
+    $('card-name').textContent = name;
+    $('card-sub').textContent = `${layers.map((l) => LAYER_NAMES[l]).join(', ')}${count > 1 ? ` · ${count} parts` : ''}`;
     $('card-focus').textContent = 'Isolate';
+  }
+
+  // ---- Find, in Explore ----------------------------------------------------
+
+  private openSearch(): void {
+    $('prompt').hidden = true;
+    $('search').hidden = false;
+    $('find').setAttribute('aria-expanded', 'true');
+    const input = $<HTMLInputElement>('search-input');
+    input.value = '';
+    this.drawFound();
+    input.focus();
+  }
+
+  private closeSearch(): void {
+    $('prompt').hidden = false;
+    $('search').hidden = true;
+    $('search-results').hidden = true;
+    $('find').setAttribute('aria-expanded', 'false');
+    this.found = [];
+  }
+
+  private drawFound(): void {
+    const query = $<HTMLInputElement>('search-input').value;
+    this.found = search(this.findable, query);
+    this.foundIndex = 0;
+    const list = $('search-results');
+    list.hidden = !query.trim();
+    if (!this.found.length) {
+      const li = document.createElement('li');
+      li.className = 'none';
+      li.textContent = 'Nothing by that name';
+      list.replaceChildren(li);
+      return;
+    }
+    list.replaceChildren(
+      ...this.found.map((entry, i) => {
+        const li = document.createElement('li');
+        li.setAttribute('role', 'option');
+        li.setAttribute('aria-selected', String(i === 0));
+        li.innerHTML = '<span></span><small></small>';
+        li.firstElementChild!.textContent = entry.name;
+        li.lastElementChild!.textContent = SYSTEM_NAMES[entry.system];
+        // mousedown, so the input keeps its focus until the choice is made
+        li.onmousedown = (event) => event.preventDefault();
+        li.onclick = () => this.showFound(entry);
+        return li;
+      }),
+    );
+  }
+
+  private moveFound(by: number): void {
+    if (!this.found.length) return;
+    this.foundIndex = (this.foundIndex + by + this.found.length) % this.found.length;
+    const items = $('search-results').querySelectorAll('li');
+    items.forEach((li, i) => li.setAttribute('aria-selected', String(i === this.foundIndex)));
+    items[this.foundIndex].scrollIntoView({ block: 'nearest' });
+  }
+
+  /** Shows a structure where it is: its layers on, its parts put back if peeled, lit up, and the camera on it. */
+  private showFound(entry: Entry): void {
+    this.closeSearch();
+    $<HTMLInputElement>('search-input').blur();
+    if (this.focused) {
+      this.body.setFocus(null);
+      this.focused = false;
+    }
+    const layers = new Set(entry.parts.map((id) => this.body.parts.get(id)!.layer));
+    for (const layer of layers) if (!this.body.isLayerOn(layer)) this.body.setLayer(layer, true);
+    this.drawLayers();
+    this.body.unpeel(entry.parts);
+    $('restore').hidden = this.body.peeledCount === 0;
+    this.selected = entry.parts;
+    this.body.glow('hover', []);
+    this.body.glow('pick', this.selected);
+    this.drawCard(entry.name);
+    this.view.flyToParts(this.selected);
   }
 
   // ---- The HUD's buttons ---------------------------------------------------
 
   private buildHud(): void {
     $('quit').onclick = () => this.showMenu();
+    $('find').onclick = () => ($('search').hidden ? this.openSearch() : this.closeSearch());
+    $('search-input').oninput = () => this.drawFound();
+    $('search').onsubmit = (event) => {
+      event.preventDefault();
+      const entry = this.found[this.foundIndex];
+      if (entry) this.showFound(entry);
+    };
+    $('search-input').onkeydown = (event) => {
+      if (event.key === 'ArrowDown') this.moveFound(1);
+      else if (event.key === 'ArrowUp') this.moveFound(-1);
+      else if (event.key === 'Escape') this.closeSearch();
+      else return;
+      event.preventDefault();
+    };
     $('home').onclick = () => this.view.home();
     $('next').onclick = () => this.advance();
     $('skip').onclick = () => {

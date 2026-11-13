@@ -38,8 +38,15 @@
       <header id="top">
         <button id="quit" class="icon" aria-label="Back to the menu">✕</button>
         <div id="prompt"><small id="prompt-kind"></small><strong id="prompt-text"></strong></div>
+        <form id="search" role="search" hidden>
+          <input id="search-input" type="search" placeholder="Find a part: femur, liver…" autocomplete="off" spellcheck="false" aria-label="Find a part by name" aria-controls="search-results" />
+        </form>
+        <button id="find" class="icon" aria-label="Find a part by name" aria-expanded="false" hidden>
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
         <div id="status"><span id="progress"></span><strong id="score"></strong></div>
       </header>
+      <ul id="search-results" role="listbox" hidden></ul>
       <div id="tries"></div>
       <div id="toast" hidden></div>
       <div id="bottom">

@@ -6,7 +6,7 @@ A 3D anatomy quiz game (working title), in the spirit of Landfall: plain TypeScr
 
 - **Find It**: you are asked for a structure ("Thigh bone (femur)") and tap it on the body. Three tries: 100, 60 and 30 points. What you look for may be under something else: switch layers off, or use **Peel** and tap parts to take them away. **Show me** gives up and shows where it is.
 - **Name It**: a structure lights up inside a see-through body, and you pick its name from four. 100 points.
-- **Explore**: tap anything to see its name. **Isolate** shows it alone; **Hide** takes it away.
+- **Explore**: tap anything to see its name. **Isolate** shows it alone; **Hide** takes it away. **Find** (the magnifier at the top) looks a structure up by name, at any level ("femur", "skull", "liver"), and lights it up where it is: its layer comes on and it is put back if it was peeled.
 
 Once a question is answered, the game says what the structure does and one fun fact about it, where it has them (`src/facts.ts`; most are still to be written, and `npm run missing-facts` lists which).
 
@@ -72,6 +72,7 @@ To look at or clean up scores: `npx wrangler d1 execute body-quiz-scores --remot
 | --- | --- |
 | `src/structures.ts` | What is asked: the rules that turn the model's 933 parts into structures, per system and level |
 | `src/facts.ts` | What each structure does and a fun fact about it, shown after its question |
+| `src/search.ts` | Find in Explore: every level's structures, matched against what is typed |
 | `src/game.ts` | A round: picking questions and options, answers, scoring |
 | `src/body.ts` | The 3D body: loading its parts, layers, peeling, glows, ghosts |
 | `src/view.ts` | The camera and canvas: turning and zooming, flying to a part, telling which part was tapped |

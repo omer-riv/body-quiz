@@ -169,6 +169,11 @@ export class Body {
     for (const id of ids) this.peeled.add(id);
     this.refresh();
   }
+  /** Puts peeled parts back. */
+  unpeel(ids: readonly string[]): void {
+    for (const id of ids) this.peeled.delete(id);
+    this.refresh();
+  }
   get peeledCount(): number {
     return this.peeled.size;
   }
