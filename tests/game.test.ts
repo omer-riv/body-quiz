@@ -96,6 +96,8 @@ describe('the speed bonus', () => {
     expect(speedBonus('find', 60_000)).toBe(0);
     expect(speedBonus('name', 5_000)).toBe(MAX_SPEED_BONUS / 2);
     expect(speedBonus('name', -50)).toBe(MAX_SPEED_BONUS);
+    // Working out which structure a function belongs to gets the longest.
+    expect(speedBonus('function', 12_500)).toBe(MAX_SPEED_BONUS / 2);
   });
 
   it('is added to a right answer, on any try, and never to a wrong one', () => {
@@ -121,5 +123,19 @@ describe('the speed bonus', () => {
     expect(r.flawless).toBe(true);
     expect(r.score).toBe(200 + MAX_SPEED_BONUS);
     expect(r.maxScore).toBe(2 * maxPoints('name'));
+  });
+});
+
+describe('Find by Function', () => {
+  it('is scored like Find It: three tries, for less each time', () => {
+    const r = new Round('function', pickQuestions(pool, makeRng(5), 2));
+    expect(r.answer('nope')).toBe('wrong');
+    expect(r.answer('nope')).toBe('wrong');
+    expect(r.answer(r.question!.target.name)).toBe('correct');
+    expect(r.score).toBe(FIND_POINTS[2]);
+    r.next();
+    r.answer(r.question!.target.name, 0);
+    expect(r.score).toBe(FIND_POINTS[2] + maxPoints('function'));
+    expect(maxPoints('function')).toBe(maxPoints('find'));
   });
 });

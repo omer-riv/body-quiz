@@ -3,16 +3,18 @@ import { shuffle, type Rng } from './rng';
 import { MAX_SPEED_BONUS, speedBonus } from './scoring';
 import type { Entry } from './structures';
 
-export type ModeId = 'explore' | 'find' | 'name';
-export const MODE_NAMES: Record<ModeId, string> = { explore: 'Explore', find: 'Find It', name: 'Name It' };
+export type ModeId = 'explore' | 'find' | 'name' | 'function';
+export const MODE_NAMES: Record<ModeId, string> = { explore: 'Explore', find: 'Find It', name: 'Name It', function: 'Find by Function' };
+/** Modes answered by tapping the body: asked by name in Find It, by what the structure does in Find by Function. */
+export const isTapped = (mode: ModeId) => mode === 'find' || mode === 'function';
 
 export const ROUND_LENGTH = 10;
 export const OPTIONS = 4;
-/** Find It: the points for getting it on the first, second and third tap. */
+/** Find It and Find by Function: the points for getting it on the first, second and third tap. */
 export const FIND_POINTS = [100, 60, 30];
 export const NAME_POINTS = 100;
 /** The most one question can be worth: right the first time, in no time at all. */
-export const maxPoints = (mode: ModeId) => (mode === 'find' ? FIND_POINTS[0] : NAME_POINTS) + MAX_SPEED_BONUS;
+export const maxPoints = (mode: ModeId) => (isTapped(mode) ? FIND_POINTS[0] : NAME_POINTS) + MAX_SPEED_BONUS;
 
 export interface Question {
   target: Entry;
@@ -99,12 +101,12 @@ export class Round {
     const question = this.question;
     if (!question || this.resolved || this.mode === 'explore') return 'out';
     if (name === question.target.name) {
-      const points = this.mode === 'find' ? (FIND_POINTS[this.misses] ?? 0) : NAME_POINTS;
+      const points = isTapped(this.mode) ? (FIND_POINTS[this.misses] ?? 0) : NAME_POINTS;
       this.resolve(points, points ? speedBonus(this.mode, ms) : 0);
       return 'correct';
     }
     this.misses++;
-    const tries = this.mode === 'find' ? FIND_POINTS.length : 1;
+    const tries = isTapped(this.mode) ? FIND_POINTS.length : 1;
     if (this.misses < tries) return 'wrong';
     this.resolve(0);
     return 'out';

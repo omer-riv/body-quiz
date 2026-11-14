@@ -30,8 +30,13 @@ export interface Placement {
 export type RoundSystem = SystemId | 'all';
 
 /** Modes with a score. Explore has none. */
-export const RANKED_MODES: ModeId[] = ['find', 'name'];
+export const RANKED_MODES: ModeId[] = ['find', 'name', 'function'];
 export const BOARD_SYSTEMS: RoundSystem[] = ['all', ...SYSTEMS];
+/**
+ * The systems a mode can be played on. Find by Function needs a clue for every
+ * structure (CLUES in src/facts.ts), and only the brain's have one.
+ */
+export const systemsFor = (mode: ModeId): RoundSystem[] => (mode === 'function' ? ['brain'] : BOARD_SYSTEMS);
 export const LEVELS: Level[] = [1, 2, 3];
 
 /**
@@ -61,12 +66,13 @@ export const categoryOf = (mode: ModeId, system: RoundSystem, level: Level) => `
 
 /** The table a round's score goes on, or null when the mode isn't ranked. */
 export function categoryFor(s: Category): string | null {
-  return RANKED_MODES.includes(s.mode) ? categoryOf(s.mode, s.system, s.level) : null;
+  return RANKED_MODES.includes(s.mode) && systemsFor(s.mode).includes(s.system) ? categoryOf(s.mode, s.system, s.level) : null;
 }
 
 /** The table the high scores screen opens on: the round picked in the menu, or Find It when that is Explore. */
 export function scoresViewFor(s: Category): Category {
-  return { mode: RANKED_MODES.includes(s.mode) ? s.mode : 'find', system: s.system, level: s.level };
+  const mode = RANKED_MODES.includes(s.mode) ? s.mode : 'find';
+  return { mode, system: systemsFor(mode).includes(s.system) ? s.system : systemsFor(mode)[0], level: s.level };
 }
 
 /** Checks a category from a request; null unless it is one the game can produce. */
@@ -75,7 +81,7 @@ export function parseCategory(category: string): Category | null {
   if (parts.length !== 3) return null;
   const [mode, system, lvl] = parts as [ModeId, RoundSystem, string];
   const level = Number(lvl) as Level;
-  if (!RANKED_MODES.includes(mode) || !BOARD_SYSTEMS.includes(system) || !/^\d$/.test(lvl) || !LEVELS.includes(level)) return null;
+  if (!RANKED_MODES.includes(mode) || !systemsFor(mode).includes(system) || !/^\d$/.test(lvl) || !LEVELS.includes(level)) return null;
   return { mode, system, level };
 }
 
