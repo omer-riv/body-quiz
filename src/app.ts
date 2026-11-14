@@ -882,5 +882,5 @@ const STEP_COUNT = STEPS.length - 1;
 
 // "That's the Shinbone (tibia)" reads better as "the shinbone (tibia)", but "Achilles" keeps its capital.
 function lower(name: string): string {
-  return /^(Achilles|Adam|IT )/.test(name) ? name : name.charAt(0).toLowerCase() + name.slice(1);
+  return /^(Achilles|Adam|Broca|Wernicke|IT )/.test(name) ? name : name.charAt(0).toLowerCase() + name.slice(1);
 }

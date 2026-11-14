@@ -551,10 +551,6 @@ export const FACTS: Record<string, Fact> = {
     does: 'It receives touch signals from across the body.',
     fun: 'Its map of the body is distorted: lips and fingertips get the most room.',
   },
-  'Basal ganglia': {
-    does: 'These clusters deep in the brain help start and smooth out movements.',
-    fun: 'Parkinson\'s disease involves the loss of cells that supply them with dopamine.',
-  },
   'Upper lobe of the lung': {
     does: 'It is the top section of each lung.',
     fun: 'The right lung has three lobes, but the left has only two.',
@@ -615,9 +611,117 @@ export const FACTS: Record<string, Fact> = {
     does: 'Two veins that join to form the superior vena cava, which empties into the heart.',
     fun: 'The left one is longer than the right.',
   },
-  'Ventricles of the brain': {
-    does: 'These fluid-filled chambers make and circulate the fluid that cushions the brain.',
+  'Midbrain': {
+    does: 'It helps control eye movements and reflexes to sights and sounds, and makes dopamine.',
+    fun: 'The loss of its dopamine-making cells causes Parkinson\'s disease.',
+  },
+  'Cingulate gyrus': {
+    does: 'It links emotion with action, and helps you notice mistakes and pain.',
+    fun: 'Its name is Latin for belt: it wraps around the corpus callosum.',
+  },
+  'Primary visual cortex': {
+    does: 'It is the first part of the cortex to receive signals from the eyes, and maps out what you see.',
+    fun: 'It is also called the striate cortex, after a pale stripe in it that can be seen with the naked eye.',
+  },
+  'Broca\'s area': {
+    does: 'It plans the movements of speech and helps you put words together into sentences.',
+    fun: 'Paul Broca found it in 1861 in a patient who understood speech but could say only the word "tan".',
+  },
+  'Wernicke\'s area': {
+    does: 'It helps you understand the words you hear and read.',
+    fun: 'People with damage here can speak fluently, but what they say often makes little sense.',
+  },
+  'Superior frontal gyrus': {
+    does: 'It helps plan complex movements and keeps information in mind while you work with it.',
+    fun: 'Stimulating one spot on it during brain surgery once made a patient laugh.',
+  },
+  'Middle frontal gyrus': {
+    does: 'It helps you hold things in mind, focus your attention and plan what to do next.',
+    fun: 'Near its back end is an area that aims your eyes when you choose where to look.',
+  },
+  'Inferior frontal gyrus': {
+    does: 'It helps you speak, and stop yourself from doing something you had started to do.',
+    fun: 'In most people its left side holds Broca\'s area, which is needed for speech.',
+  },
+  'Orbitofrontal cortex (orbital gyri)': {
+    does: 'It weighs up rewards and punishments to help you make choices.',
+    fun: 'It sits right above the eye sockets, which are called orbits and give it its name.',
+  },
+  'Superior parietal lobule': {
+    does: 'It combines sight and touch to keep track of where your body is and guide your reach.',
+    fun: 'Damage here can leave people able to see an object clearly yet unable to reach for it accurately.',
+  },
+  'Supramarginal gyrus': {
+    does: 'It helps you process the sounds of words and make sense of what you touch.',
+    fun: 'It curves around the back end of the lateral sulcus, the deep groove along the side of the brain.',
+  },
+  'Angular gyrus': {
+    does: 'It helps with reading, writing, arithmetic and making sense of language.',
+    fun: 'Damage here can leave a person unable to tell left from right or to name their own fingers.',
+  },
+  'Auditory cortex (superior temporal gyrus)': {
+    does: 'It receives sound signals from the ears and works out pitch, loudness and speech.',
+    fun: 'It is laid out like a piano keyboard, with low notes at one end and high notes at the other.',
+  },
+  'Middle temporal gyrus': {
+    does: 'It helps you understand the meaning of words and of what you see.',
+    fun: 'It lies between two grooves that run the length of the temporal lobe.',
+  },
+  'Inferior temporal gyrus': {
+    does: 'It helps you recognise objects by their shape and colour.',
+    fun: 'It is the last stop of the "what" pathway, which carries sight forward from the back of the brain.',
+  },
+  'Fusiform gyrus': {
+    does: 'It helps you recognise faces, and written words too.',
+    fun: 'Damage here can leave people unable to recognise faces, even those of family and friends.',
+  },
+  'Parahippocampal gyrus': {
+    does: 'It helps you recognise places and scenes, and feeds information to the hippocampus.',
+    fun: 'One part of it responds more strongly to pictures of rooms and landscapes than to faces or objects.',
+  },
+  'Visual association cortex': {
+    does: 'It builds on the first visual signals to work out colour, shape, depth and motion.',
+    fun: 'Damage to one small part of it can leave a person seeing the world only in shades of grey.',
+  },
+  'Insula': {
+    does: 'It senses the state of your body, such as heartbeat, hunger and pain, and processes taste.',
+    fun: 'It is hidden from view, folded deep inside the groove on the side of the brain.',
+  },
+  'Caudate nucleus': {
+    does: 'It helps you learn from rewards and plan movements towards a goal.',
+    fun: 'Its name means "tailed": it has a long tail that curves around in the shape of a C.',
+  },
+  'Putamen': {
+    does: 'It helps control movement, and learn habits and skills by practice.',
+    fun: 'Its name is Latin for a shell or husk, like that of a nut.',
+  },
+  'Globus pallidus': {
+    does: 'It works as a brake on movement, keeping unwanted motions in check.',
+    fun: 'Its name is Latin for "pale globe": the many nerve fibres crossing it make it look pale.',
+  },
+  'Lateral ventricles': {
+    does: 'These two fluid-filled chambers, one in each half of the brain, make most of the fluid that cushions it.',
     fun: 'The brain makes about half a litre of this fluid every day.',
+  },
+  'Third ventricle': {
+    does: 'This narrow fluid-filled slit in the middle of the brain passes fluid on from the lateral ventricles.',
+    fun: 'It lies between the two halves of the thalamus, which often touch each other across it.',
+  },
+  'Fourth ventricle': {
+    does: 'This chamber between the brainstem and cerebellum lets the fluid out to flow around the brain.',
+    fun: 'It is shaped like a tent, and its diamond-shaped floor is called the rhomboid fossa.',
+  },
+  'Fornix': {
+    does: 'This arch of nerve fibres carries signals out of the hippocampus, and is important for memory.',
+    fun: 'Its name is the Latin word for arch.',
+  },
+  'Optic chiasm': {
+    does: 'Here the two optic nerves meet and half of their fibres cross to the other side.',
+    fun: 'It is named after the Greek letter chi, which is written as an X.',
+  },
+  'Optic tract': {
+    does: 'It carries sight signals from the optic chiasm to a relay station in the thalamus.',
+    fun: 'Each one carries the opposite half of your view, with signals from both eyes.',
   },
 };
 
