@@ -2,10 +2,10 @@
 import { BATTLE_PATH, canBattle, isBattleCode, type BattleSettings } from './battle';
 import { Battle, PLAY_NAMES, battleSetup, type BattleAsk, type BattleHost } from './battle-ui';
 import { Body, type Part } from './body';
-import { factFor } from './facts';
-import { MODE_NAMES, Round, pickQuestions, FIND_POINTS, type ModeId } from './game';
+import { clueFor, factFor } from './facts';
+import { MODE_NAMES, Round, isTapped, pickQuestions, FIND_POINTS, type ModeId } from './game';
 import { scoreTables, summaryScores } from './highscores';
-import { BOARD_SYSTEMS, LEVELS, RANKED_MODES, categoryFor, categoryOf, roundName, scoresViewFor, systemName, type Category } from './leaderboard';
+import { BOARD_SYSTEMS, LEVELS, RANKED_MODES, categoryFor, categoryOf, roundName, scoresViewFor, systemName, systemsFor, type Category } from './leaderboard';
 import { makeRng } from './rng';
 import { MAX_SPEED_BONUS } from './scoring';
 import { search, searchable } from './search';
@@ -22,9 +22,10 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getEleme
 const MODE_HINTS: Record<ModeId, string> = {
   find: 'Tap the part you are asked for',
   name: 'Name the part that lights up',
+  function: 'Tap the part that does the job',
   explore: 'Tap anything to learn its name',
 };
-const MODES: ModeId[] = ['find', 'name', 'explore'];
+const MODES: ModeId[] = ['find', 'name', 'function', 'explore'];
 const LAYER_DOTS: Record<Layer, string> = { skin: '#c79676', muscle: '#c0443e', bone: '#e2d6b5', organ: '#d98a94', vessel: '#5a7be0', brain: '#e0b0c0' };
 // What a round starts with on screen. The player can change it from there.
 const START_LAYERS: Record<SystemId | 'all', Layer[]> = {
@@ -104,31 +105,40 @@ export class App implements BattleHost {
   // ---- Menu ----------------------------------------------------------------
 
   private buildMenu(): void {
-    const choice = <T,>(host: string, values: readonly T[], label: (v: T) => string, current: () => T, set: (v: T) => void) => {
+    // One choice can change what another offers, so a click draws them all again.
+    const draws: (() => void)[] = [];
+    const choice = <T,>(host: string, values: readonly T[], label: (v: T) => string, current: () => T, set: (v: T) => void, offered: (v: T) => boolean = () => true) => {
       const el = $(host);
-      const draw = () => {
+      draws.push(() => {
         el.replaceChildren(
           ...values.map((value) => {
             const button = document.createElement('button');
             button.innerHTML = label(value);
             button.setAttribute('aria-pressed', String(value === current()));
+            button.disabled = !offered(value);
             button.onclick = () => {
               set(value);
               saveSettings(this.settings);
-              draw();
+              for (const draw of draws) draw();
               this.menuChanged();
             };
             return button;
           }),
         );
-      };
-      draw();
+      });
     };
     const s = this.settings;
-    choice('modes', MODES, (m) => `${MODE_NAMES[m]}<small>${MODE_HINTS[m]}</small>`, () => s.mode, (m) => (s.mode = m));
-    choice<SystemId | 'all'>('systems', BOARD_SYSTEMS, systemName, () => s.system, (v) => (s.system = v));
+    // A mode that isn't played on every system moves the choice to one it has.
+    const setMode = (mode: ModeId) => {
+      s.mode = mode;
+      if (!systemsFor(mode).includes(s.system)) s.system = systemsFor(mode)[0];
+    };
+    setMode(s.mode);
+    choice('modes', MODES, (m) => `${MODE_NAMES[m]}<small>${MODE_HINTS[m]}</small>`, () => s.mode, setMode);
+    choice<SystemId | 'all'>('systems', BOARD_SYSTEMS, systemName, () => s.system, (v) => (s.system = v), (v) => systemsFor(s.mode).includes(v));
     choice<Level>('levels', [1, 2, 3], (l) => LEVEL_NAMES[l], () => s.level, (l) => (s.level = l));
     choice<'solo' | 'battle'>('plays', ['solo', 'battle'], (v) => PLAY_NAMES[v], () => (this.playBattle ? 'battle' : 'solo'), (v) => (this.playBattle = v === 'battle'));
+    for (const draw of draws) draw();
     $('start').onclick = () => {
       if (this.playBattle && canBattle(s)) this.openOverlay(battleSetup(s, (settings, name) => this.battles.create(settings, name), () => this.showMenu()));
       else if (tutorialSeen()) this.play();
@@ -193,8 +203,9 @@ export class App implements BattleHost {
           const button = document.createElement('button');
           button.textContent = label(value);
           button.setAttribute('aria-pressed', String(value === view[key]));
+          button.disabled = key === 'system' && !systemsFor(view.mode).includes(value as Category['system']);
           button.onclick = () => {
-            this.scoresView = { ...view, [key]: value };
+            this.scoresView = scoresViewFor({ ...view, [key]: value });
             this.drawScores();
           };
           return button;
@@ -305,11 +316,13 @@ export class App implements BattleHost {
       $('progress').textContent = `${round.index + 1} / ${round.questions.length}`;
       $('score').textContent = String(round.score);
     }
-    if (round.mode === 'find') {
+    if (isTapped(round.mode)) {
       if (this.focused) this.body.setFocus(null);
       this.focused = false;
-      $('prompt-kind').textContent = `Find · ${SYSTEM_NAMES[question.target.system]}`;
-      $('prompt-text').textContent = question.target.name;
+      const clue = round.mode === 'function' ? clueFor(question.target.name) : undefined;
+      $('prompt-kind').textContent = clue ? 'Which part of the brain…' : `Find · ${SYSTEM_NAMES[question.target.system]}`;
+      // A structure without a clue is asked for by name. The tests see that the brain has none.
+      $('prompt-text').textContent = clue ? `${clue}?` : question.target.name;
       $('skip').hidden = false;
       this.drawTries();
     } else {
@@ -350,7 +363,7 @@ export class App implements BattleHost {
   }
 
   private hover(part: Part | null): void {
-    const live = this.playing === 'explore' || (this.playing === 'find' && this.round && !this.round.resolved);
+    const live = this.playing === 'explore' || (this.playing && isTapped(this.playing) && this.round && !this.round.resolved);
     this.view.canvas.classList.toggle('pointing', !!part && !!live);
     this.body.glow('hover', part && live ? this.groupOf(part).filter((id) => !this.selected.includes(id)) : []);
   }
@@ -358,7 +371,7 @@ export class App implements BattleHost {
   private tap(part: Part | null): void {
     if (this.playing === 'explore') return this.select(part);
     const round = this.round;
-    if (!round || round.mode !== 'find' || round.resolved || !part) return;
+    if (!round || !isTapped(round.mode) || round.resolved || !part) return;
     const group = this.groupOf(part);
     if (this.peeling) {
       this.body.peel(group);
@@ -510,7 +523,7 @@ export class App implements BattleHost {
     if (!this.inBattle || !round || round.resolved) return;
     const target = round.question!.target;
     round.skip();
-    if (round.mode === 'find') this.reveal(`Time’s up! Here is the ${lower(target.name)}`);
+    if (isTapped(round.mode)) this.reveal(`Time’s up! Here is the ${lower(target.name)}`);
     else this.showName(target, false);
   }
 

@@ -6,9 +6,10 @@ A 3D anatomy quiz game, in the spirit of Landfall, played at [vitals.smalldetour
 
 - **Find It**: you are asked for a structure ("Thigh bone (femur)") and tap it on the body. Three tries: 100, 60 and 30 points. What you look for may be under something else: switch layers off, or use **Peel** and tap parts to take them away. **Show me** gives up and shows where it is.
 - **Name It**: a structure lights up inside a see-through body, and you pick its name from four. 100 points.
+- **Find by Function**: you are asked what a part of the brain does ("Which part of the brain… plans the movements of speech?") and tap it on the body. Tries and points are as in Find It. It is played on the brain only, the one system whose structures all have a clue (`CLUES` in `src/facts.ts`).
 - **Explore**: tap anything to see its name. **Isolate** shows it alone; **Hide** takes it away. **Find** (the magnifier at the top) looks a structure up by name, at any level ("femur", "skull", "liver"), and lights it up where it is: its layer comes on and it is put back if it was peeled.
 
-A right answer also earns a **speed bonus** of up to 50 points, which shrinks steadily from the moment the question appears: 50 for an instant answer, half after half the time, and nothing after 20 seconds in Find It or 10 in Name It. It comes on top of the points for the answer, on any try, so a question is worth at most 150. A round is **Flawless** when every question was right the first time, however long it took.
+A right answer also earns a **speed bonus** of up to 50 points, which shrinks steadily from the moment the question appears: 50 for an instant answer, half after half the time, and nothing after 20 seconds in Find It, 25 in Find by Function or 10 in Name It. It comes on top of the points for the answer, on any try, so a question is worth at most 150. A round is **Flawless** when every question was right the first time, however long it took.
 
 Once a question is answered, the game says what the structure does and one fun fact about it, where it has them (`src/facts.ts`; most are still to be written, and `npm run missing-facts` lists which).
 
@@ -20,10 +21,10 @@ Drag to turn the body, pinch or scroll to zoom, drag with two fingers (or the ri
 
 ## Battles
 
-Play live against up to 5 friends: everyone gets the same questions at the same moment, with a live scoreboard, and the most points wins. A battle is a way to play a round, not a mode: it works with Find It and Name It, on every system and level. Explore has no score, so it has no battles.
+Play live against up to 5 friends: everyone gets the same questions at the same moment, with a live scoreboard, and the most points wins. A battle is a way to play a round, not a mode: it works with Find It, Name It and Find by Function, on every system and level they have. Explore has no score, so it has no battles.
 
 1. Pick the mode, system and level in the menu as usual, switch **Solo** to **⚔️ Battle** above the start button, and tap **Set up battle**.
-2. Choose how long each question lasts (30 seconds by default in Find It, 20 in Name It), type your name and tap **Create battle**.
+2. Choose how long each question lasts (30 seconds by default in Find It and Find by Function, 20 in Name It), type your name and tap **Create battle**.
 3. Send the link to up to 5 friends. Each opens it, types a name and joins the lobby, where everyone sees who is in.
 4. The battle's creator taps **Start the battle** whenever they like. A 3-2-1 countdown runs on every screen at the same moment.
 
@@ -45,7 +46,7 @@ A new version is picked up on the next visit after it is published, and the one 
 
 ## High scores
 
-Find It and Name It have shared high-score tables, the same for everyone who plays: **This week**, **This month** and **All time**. Weeks start on Monday and months on the 1st, at midnight UTC. Each combination of mode, system and level is its own table, 30 in all. Explore has no score, so it has no table.
+Find It, Name It and Find by Function have shared high-score tables, the same for everyone who plays: **This week**, **This month** and **All time**. Weeks start on Monday and months on the 1st, at midnight UTC. Each combination of mode, system and level is its own table, 33 in all: Find by Function has the brain's three. Explore has no score, so it has no table.
 
 There are no accounts. When a round's score would make the top 10 of any of the three tables, the summary asks for a name and a **Submit**, then says where the score placed and picks it out on the table; the name is remembered for next time. A name can appear more than once on a table, once for each score that makes it. A score that wouldn't make a table isn't sent, and the summary just shows the table.
 
@@ -106,7 +107,7 @@ To look at or clean up scores: `npx wrangler d1 execute body-quiz-scores --remot
 | Path | What it is |
 | --- | --- |
 | `src/structures.ts` | What is asked: the rules that turn the model's 937 parts into structures, per system and level |
-| `src/facts.ts` | What each structure does and a fun fact about it, shown after its question |
+| `src/facts.ts` | What each structure does and a fun fact about it, shown after its question, and the clues Find by Function asks |
 | `src/search.ts` | Find in Explore: every level's structures, matched against what is typed |
 | `src/game.ts` | A round: picking questions and options, answers, scoring |
 | `src/scoring.ts` | The speed bonus for fast answers |

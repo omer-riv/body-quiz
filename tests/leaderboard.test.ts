@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { MODE_NAMES, Round, pickQuestions, type ModeId } from '../src/game';
 import {
   BOARD_SIZE, BOARD_SYSTEMS, LEVELS, RANKED_MODES,
-  categoryFor, cleanName, maxScore, nameKey, parseCategory, periodStart, roundLength, scoresViewFor, wouldPlace,
+  categoryFor, cleanName, maxScore, nameKey, parseCategory, periodStart, roundLength, scoresViewFor, systemsFor, wouldPlace,
   type Boards, type Entry, type Placement,
 } from '../src/leaderboard';
 import { makeRng } from '../src/rng';
@@ -16,14 +16,16 @@ const parts: PartInfo[] = JSON.parse(readFileSync('public/body/manifest.json', '
 
 describe('categoryFor and parseCategory', () => {
   it('accepts every ranked round the menu can start, and nothing else', () => {
-    // The menu offers every mode with every system and level.
+    // The menu offers every mode with every level, on the systems the mode is played on.
     expect(BOARD_SYSTEMS).toEqual(['all', ...SYSTEMS]);
     for (const mode of Object.keys(MODE_NAMES) as ModeId[]) {
       for (const system of BOARD_SYSTEMS) {
         for (const level of LEVELS) {
           const category = categoryFor({ mode, system, level });
-          if (mode === 'explore') expect(category).toBeNull();
-          else {
+          if (mode === 'explore' || !systemsFor(mode).includes(system)) {
+            expect(category).toBeNull();
+            expect(parseCategory(`${mode}:${system}:${level}`)).toBeNull();
+          } else {
             expect(parseCategory(category!), category!).toEqual({ mode, system, level });
             // The personal best in the browser is kept under the same name.
             expect(category).toBe(bestKey({ mode, system, level }));
@@ -31,7 +33,16 @@ describe('categoryFor and parseCategory', () => {
         }
       }
     }
-    expect(RANKED_MODES).toEqual(['find', 'name']);
+    expect(RANKED_MODES).toEqual(['find', 'name', 'function']);
+  });
+
+  it('plays Find by Function on the brain alone, where every structure has a clue', () => {
+    expect(systemsFor('function')).toEqual(['brain']);
+    expect(systemsFor('find')).toEqual(BOARD_SYSTEMS);
+    expect(parseCategory('function:brain:3')).toEqual({ mode: 'function', system: 'brain', level: 3 });
+    expect(parseCategory('function:all:3')).toBeNull();
+    // The high scores screen opens on a table the mode has.
+    expect(scoresViewFor({ mode: 'function', system: 'organs', level: 2 })).toEqual({ mode: 'function', system: 'brain', level: 2 });
   });
 
   it('rejects made-up categories', () => {
@@ -55,6 +66,7 @@ describe('maxScore', () => {
         const questions = pickQuestions(pool, makeRng(1));
         expect(roundLength(system, level), `${system} at ${level}`).toBe(questions.length);
         for (const mode of RANKED_MODES) {
+          if (!systemsFor(mode).includes(system)) continue;
           expect(maxScore({ mode, system, level })).toBe(new Round(mode, questions).maxScore);
         }
       }
@@ -63,6 +75,7 @@ describe('maxScore', () => {
 
   it('is lower for a round shorter than 10: Brain at Easy has 6 questions', () => {
     expect(maxScore({ mode: 'find', system: 'brain', level: 1 })).toBe(900);
+    expect(maxScore({ mode: 'function', system: 'brain', level: 1 })).toBe(900);
     expect(maxScore({ mode: 'name', system: 'all', level: 1 })).toBe(1500);
   });
 });
