@@ -34,6 +34,7 @@ button[aria-pressed='true'] { background: rgba(53, 200, 255, 0.2); border-color:
 .tagline { margin: 2px 0 4px; color: var(--dim); }
 .choices { display: flex; flex-wrap: wrap; gap: 8px; }
 .choices button { flex: 1 1 auto; padding: 9px 12px; }
+.choices button:disabled { opacity: 0.35; cursor: default; }
 #modes button { flex: 1 1 0; text-align: left; }
 #modes small { display: block; color: var(--dim); font-size: 0.74rem; line-height: 1.25; margin-top: 2px; }
 #start { margin-top: 18px; }
