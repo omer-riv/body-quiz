@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """Builds the 3D body in public/body/ from BodyParts3D.
 
-    pip install numpy trimesh fast-simplification
+    pip install numpy trimesh fast-simplification manifold3d
     npm run build-body
 
 The source is BodyParts3D 3.0 (c) The Database Center for Life Science, licensed
 under CC Attribution-Share Alike 2.1 Japan: 937 STL files, 26 million triangles,
 1.3 GB. They are fetched once into .cache/ from a GitHub mirror. Each part is
 simplified to about 4% of its triangles, turned to Y-up, and its positions are
-stored as 16-bit integers over the whole body's bounding box. The parts of one
-layer share a file, so the game can load the body layer by layer:
+stored as 16-bit integers over the whole body's bounding box. A few regions of
+the brain that BodyParts3D doesn't draw are cut out of the part they lie in
+(CARVE). The parts of one layer share a file, so the game can load the body layer by layer:
 
     public/body/manifest.json   the box, and every part: id, name, layer, kind, where its data is
     public/body/<layer>.bin     per part: positions (uint16 x3), then indices (uint16 or uint32)
@@ -45,6 +46,29 @@ BY_NAME = [
     ('artery', r'aorta|artery'),
     ('vein', r'\bveins?\b|vena cava|coronary sinus'),
     ('brain', r'gyrus|gyri|lobule|commissure|capsule|colliculus|caudate|cerebellum|callosum|pallidus|habenula|hypothalamus|interpeduncular|interventricular foramen|lamina terminalis|geniculate|mammillary|pineal|pituitary|pons|putamen|pellucidum|stria |thalamus|tuber cinereum|insula|ventricle$|aqueduct|amygdala|hippocampus|optic|midbrain|medulla|fornix|white matter|occipital lobe|spinal cord'),
+]
+
+# BodyParts3D calls the inferior frontal gyrus, the fold of the frontal lobe's
+# outer face under the middle frontal gyrus, by the name of a small fold of the
+# insula.
+RENAME = [('accessory short gyrus', 'inferior frontal gyrus')]
+
+# Regions of the brain's cortex that are known by what they do, which the model
+# doesn't draw apart: each is cut out of the part it lies in, as a part of its
+# own. A region is the ellipsoids it fills, each a centre and its radii in the
+# game's millimetres (x to the body's left, y up, z to the front), given for
+# the left side; `sides` says where it is cut. The borders are drawn from
+# anatomy books, not from an atlas: the real ones follow folds this model is
+# too smooth to show, and differ between people.
+#   name of the part cut from, name of the part cut out, sides, ellipsoids
+CARVE = [
+    # Along the calcarine sulcus on the inner face of the lobe, and around its tip at the very back.
+    ('{side} occipital lobe', '{side} primary visual cortex', ('left', 'right'),
+     [((0, 1549, 26), (10, 10, 26)), ((6, 1549, 4), (16, 11, 12))]),
+    # The back of the gyrus (its opercular and triangular parts), in the left half for nearly everyone.
+    ('{side} inferior frontal gyrus', "{side} Broca's area", ('left',), [((45, 1585, 100), (40, 40, 30))]),
+    # The back end of the gyrus, where it meets the parietal lobe, again on the left.
+    ('posterior part of {side} superior temporal gyrus', "{side} Wernicke's area", ('left',), [((55, 1560, 35), (40, 40, 28))]),
 ]
 
 
@@ -87,6 +111,8 @@ def classify():
     for f in sorted(os.listdir(os.path.join(DATA, 'stl'))):
         part = f[:-4]
         name = names[part]
+        for old, new in RENAME:
+            name = name.replace(old, new)
         if 'pubic hairs' in name:  # a spiky blob that helps nobody
             continue
         k = kind(part, name)
@@ -108,11 +134,44 @@ def simplify(part):
     return v, np.asarray(f, np.uint32)
 
 
+def carve(parts, meshes):
+    """Cuts the CARVE regions out of their parts: each becomes a part of its own, right after the one it came from."""
+    import trimesh
+    cuts = {}
+    for source, name, sides, shapes in CARVE:
+        for side in sides:
+            flip = -1 if side == 'right' else 1
+            region = []
+            for centre, radii in shapes:
+                ball = trimesh.creation.icosphere(subdivisions=3)
+                ball.apply_scale(radii)
+                ball.apply_translation(np.array(centre, float) * [flip, 1, 1])
+                region.append(ball)
+            cuts[source.format(side=side)] = (name.format(side=side), region)
+    out_parts, out_meshes = [], []
+    for part, (v, f) in zip(parts, meshes):
+        if part['name'] not in cuts:
+            out_parts.append(part); out_meshes.append((v, f))
+            continue
+        name, shapes = cuts.pop(part['name'])
+        whole = trimesh.Trimesh(v, f, process=True)
+        region = trimesh.boolean.union(shapes, engine='manifold') if len(shapes) > 1 else shapes[0]
+        pieces = [(part, trimesh.boolean.difference([whole, region], engine='manifold')),
+                  ({**part, 'id': part['id'] + '-1', 'name': name}, trimesh.boolean.intersection([whole, region], engine='manifold'))]
+        for piece, mesh in pieces:
+            assert len(mesh.faces) > 50, f'nothing left of {piece["name"]}'
+            out_parts.append(piece)
+            out_meshes.append((np.asarray(mesh.vertices, np.float32), np.asarray(mesh.faces, np.uint32)))
+    assert not cuts, f'no part to cut: {sorted(cuts)}'
+    return out_parts, out_meshes
+
+
 def main():
     fetch()
     parts = classify()
     with Pool() as pool:
         meshes = pool.map(simplify, parts, chunksize=4)
+    parts, meshes = carve(parts, meshes)
     lo = np.min([v.min(axis=0) for v, _ in meshes], axis=0)
     hi = np.max([v.max(axis=0) for v, _ in meshes], axis=0)
     os.makedirs(OUT, exist_ok=True)

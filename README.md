@@ -12,7 +12,7 @@ A right answer also earns a **speed bonus** of up to 50 points, which shrinks st
 
 Once a question is answered, the game says what the structure does and one fun fact about it, where it has them (`src/facts.ts`; most are still to be written, and `npm run missing-facts` lists which).
 
-A round is 10 questions from one **system** (Skeleton, Muscles, Organs, Brain, or Everything) at one **level**. Easy asks for what most people have heard of (the skull, the biceps, the liver), Medium for more (the frontal bone, the rotator cuff, the spleen), Hard for everything the model has, about 340 structures. A system with fewer than 10 structures at a level has a shorter round: Brain at Easy has 6. Your best score for each combination is kept in the browser.
+A round is 10 questions from one **system** (Skeleton, Muscles, Organs, Brain, or Everything) at one **level**. Easy asks for what most people have heard of (the skull, the biceps, the liver), Medium for more (the frontal bone, the rotator cuff, the spleen), Hard for everything the model has, about 360 structures. A system with fewer than 10 structures at a level has a shorter round: Brain at Easy has 6. Your best score for each combination is kept in the browser.
 
 Drag to turn the body, pinch or scroll to zoom, drag with two fingers (or the right mouse button) to move.
 
@@ -72,11 +72,13 @@ In `npm run dev` the game is on `window.app`, to poke at from the console.
 
 ## The 3D body
 
-The body is [BodyParts3D](https://dbarchive.biosciencedbc.jp/en/bodyparts3d/) 3.0, © The Database Center for Life Science, licensed under [CC Attribution-Share Alike 2.1 Japan](https://creativecommons.org/licenses/by-sa/2.1/jp/deed.en): one adult male, in 933 separately modelled parts. The files in `public/body/` are adapted from it and are under the same licence. The game shows the credit on its menu.
+The body is [BodyParts3D](https://dbarchive.biosciencedbc.jp/en/bodyparts3d/) 3.0, © The Database Center for Life Science, licensed under [CC Attribution-Share Alike 2.1 Japan](https://creativecommons.org/licenses/by-sa/2.1/jp/deed.en): one adult male, in 933 separately modelled parts (937 in the game, which cuts four more out of them). The files in `public/body/` are adapted from it and are under the same licence. The game shows the credit on its menu.
 
-`npm run build-body` (`scripts/build-body.py`, needs Python with `numpy`, `trimesh` and `fast-simplification`) makes those files. It fetches the source once into `.cache/` (1.3 GB, 26 million triangles), sorts each part into a layer, simplifies it to about 4% of its triangles, and writes one binary file per layer plus `manifest.json`: 14 MB in all, loaded layer by layer. The generated files are committed, so building the game doesn't need Python.
+`npm run build-body` (`scripts/build-body.py`, needs Python with `numpy`, `trimesh`, `fast-simplification` and `manifold3d`) makes those files. It fetches the source once into `.cache/` (1.3 GB, 26 million triangles), sorts each part into a layer, simplifies it to about 4% of its triangles, cuts out the regions below, and writes one binary file per layer plus `manifest.json`: 14 MB in all, loaded layer by layer. The generated files are committed, so building the game doesn't need Python.
 
 What the model has shapes the game: there is skin, the skeleton, the muscles, the organs of the chest and belly, the big vessels of the trunk and the brain, but no nerves outside the head and no vessels in the arms and legs.
+
+The brain's cortex comes as lobes and folds (gyri), not as the regions known by what they do. Three of those are cut out of the part they lie in, as rounded shapes placed by hand from anatomy books (`CARVE` in the build script): the primary visual cortex from each occipital lobe, and Broca's and Wernicke's areas from the left inferior frontal and superior temporal gyri. Their borders are approximate: the real ones follow folds the model is too smooth to show, and differ from person to person. BodyParts3D also labels the inferior frontal gyrus "accessory short gyrus"; the build renames it.
 
 ## Deployment
 
@@ -103,7 +105,7 @@ To look at or clean up scores: `npx wrangler d1 execute body-quiz-scores --remot
 
 | Path | What it is |
 | --- | --- |
-| `src/structures.ts` | What is asked: the rules that turn the model's 933 parts into structures, per system and level |
+| `src/structures.ts` | What is asked: the rules that turn the model's 937 parts into structures, per system and level |
 | `src/facts.ts` | What each structure does and a fun fact about it, shown after its question |
 | `src/search.ts` | Find in Explore: every level's structures, matched against what is typed |
 | `src/game.ts` | A round: picking questions and options, answers, scoring |
