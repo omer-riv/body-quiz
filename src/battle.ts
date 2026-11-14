@@ -8,7 +8,7 @@
 // player's game works out its own points, the same way as in a round played
 // alone, and sends them in. Everyone gets the same questions because they all
 // come from the battle's seed (battlePlan in src/game.ts).
-import { maxPoints } from './game';
+import { isTapped, maxPoints } from './game';
 import { RANKED_MODES, MAX_NAME_LENGTH, categoryOf, cleanName, nameKey, parseCategory, roundLength, roundName, type Category } from './leaderboard';
 
 /** The page a battle link opens, next to the game's index.html: battle?b=CODE */
@@ -50,10 +50,10 @@ export type BattleSettings = Category & {
 
 /** The question timeouts the battle setup offers, in seconds. Finding a structure under others takes longer than picking a name. */
 export function timeoutOptions(mode: Category['mode']): number[] {
-  return mode === 'find' ? [15, 20, 30, 45, 60] : [10, 15, 20, 30, 45];
+  return isTapped(mode) ? [15, 20, 30, 45, 60] : [10, 15, 20, 30, 45];
 }
 
-export const defaultTimeout = (mode: Category['mode']) => (mode === 'find' ? 30 : 20);
+export const defaultTimeout = (mode: Category['mode']) => (isTapped(mode) ? 30 : 20);
 
 /** Rounds a battle can be: the ones with a score, which are the ones on the high-score tables. Explore has none. */
 export const canBattle = (c: Category) => !!parseCategory(categoryOf(c.mode, c.system, c.level));

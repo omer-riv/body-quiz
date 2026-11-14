@@ -1,4 +1,5 @@
-// What the game tells you about a structure once its question is answered.
+// What the game tells you about a structure once its question is answered,
+// and what Find by Function asks about it (CLUES, at the end).
 // A structure without an entry here just shows nothing: fill them in as you go
 // (`npm run missing-facts` lists the ones left).
 export interface Fact {
@@ -727,4 +728,61 @@ export const FACTS: Record<string, Fact> = {
 
 export function factFor(structure: string): Fact | undefined {
   return FACTS[structure];
+}
+
+// What Find by Function asks: what a structure does, as the end of the question
+// "Which part of the brain …?". Every structure of the brain has one, at every
+// level, and no two are alike: a clue has to point at one structure only among
+// those of its level.
+export const CLUES: Record<string, string> = {
+  'Frontal lobe': 'plans, decides and starts your movements',
+  'Parietal lobe': 'feels touch and maps the space around you',
+  'Temporal lobe': 'processes sound and understands speech',
+  'Occipital lobe': 'makes sense of what your eyes see',
+  'Cerebellum': 'keeps your movements smooth and balanced',
+  'Brainstem': 'keeps you breathing and your heart beating',
+  'Corpus callosum': 'connects the two halves of the brain',
+  'Thalamus': 'relays most of your senses to the cortex',
+  'Pituitary gland': 'releases hormones that direct other glands',
+  'Hippocampus': 'turns experiences into lasting memories',
+  'Amygdala': 'processes fear and other emotions',
+  'Optic nerve': 'carries signals from the eye towards the brain',
+  'Optic chiasm': 'lets half of each eye\'s fibres cross sides',
+  'Optic tract': 'carries sight from the chiasm to the thalamus',
+  'Midbrain': 'makes dopamine and turns your eyes by reflex',
+  'Pons': 'relays signals from the cortex to the cerebellum',
+  'Medulla oblongata': 'sets your heartbeat and blood pressure',
+  'Hypothalamus': 'controls hunger, thirst and body temperature',
+  'Pineal gland': 'makes melatonin to set your sleep rhythm',
+  'Motor cortex (precentral gyrus)': 'sends the commands that move your muscles',
+  'Sensory cortex (postcentral gyrus)': 'receives touch from all over the body',
+  'Cingulate gyrus': 'notices mistakes and ties emotion to action',
+  'Primary visual cortex': 'is the first part of the cortex to receive sight',
+  'Broca\'s area': 'plans the movements of speech',
+  'Wernicke\'s area': 'lets you understand spoken language',
+  'Superior frontal gyrus': 'plans complex movements before you make them',
+  'Middle frontal gyrus': 'holds things in mind while you work on them',
+  'Inferior frontal gyrus': 'lets you stop yourself in the middle of an action',
+  'Orbitofrontal cortex (orbital gyri)': 'judges how good or bad an outcome is',
+  'Superior parietal lobule': 'guides your hand to what you reach for',
+  'Supramarginal gyrus': 'processes the sounds that words are made of',
+  'Angular gyrus': 'helps you read, write and do arithmetic',
+  'Auditory cortex (superior temporal gyrus)': 'receives sound and works out its pitch',
+  'Middle temporal gyrus': 'stores the meanings of words and things',
+  'Inferior temporal gyrus': 'recognises objects by shape and colour',
+  'Fusiform gyrus': 'recognises faces',
+  'Parahippocampal gyrus': 'recognises places and scenes',
+  'Visual association cortex': 'works out colour, shape and motion in what you see',
+  'Insula': 'senses your heartbeat, hunger and taste',
+  'Caudate nucleus': 'learns which actions pay off',
+  'Putamen': 'learns habits and practised skills',
+  'Globus pallidus': 'passes the basal ganglia\'s output to the thalamus',
+  'Lateral ventricles': 'makes most of the fluid that cushions the brain',
+  'Third ventricle': 'holds fluid in a slit between the two thalami',
+  'Fourth ventricle': 'lets the fluid out to flow around the brain',
+  'Fornix': 'carries signals out of the hippocampus',
+};
+
+export function clueFor(structure: string): string | undefined {
+  return CLUES[structure];
 }

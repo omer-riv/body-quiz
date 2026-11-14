@@ -7,7 +7,7 @@ import {
   type BattleSettings, type BattleState, type ClientMessage, type ServerMessage,
 } from '../src/battle';
 import { OPTIONS, Round, battlePlan, maxPoints } from '../src/game';
-import { BOARD_SYSTEMS, LEVELS, RANKED_MODES, roundLength } from '../src/leaderboard';
+import { BOARD_SYSTEMS, LEVELS, RANKED_MODES, roundLength, systemsFor } from '../src/leaderboard';
 import { makeRng } from '../src/rng';
 import { entries, type PartInfo } from '../src/structures';
 import { BattleRoom, parseCreate, type DurableObjectState } from '../worker/battle';
@@ -98,7 +98,7 @@ describe('battle questions', () => {
 describe('battle settings', () => {
   it('accept every round with a score, with a timeout from its mode’s list', () => {
     for (const mode of RANKED_MODES) {
-      for (const system of BOARD_SYSTEMS) {
+      for (const system of systemsFor(mode)) {
         for (const level of LEVELS) {
           const s = { mode, system, level, timeout: defaultTimeout(mode) };
           expect(canBattle(s)).toBe(true);
