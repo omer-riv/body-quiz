@@ -1,9 +1,12 @@
 // The Cloudflare Worker in front of the game: /api/scores reads and writes the
 // shared high scores in D1, /api/battles and /battle run battles (each one a
-// Durable Object, worker/battle.ts), and everything else is the built game in dist/.
+// Durable Object, worker/battle.ts), /challenge and /api/challenge.png give
+// challenge links their preview, and everything else is the built game in dist/.
 import { BATTLE_PATH, inviteMessage, inviteTitle, isBattleCode, type BattleView } from '../src/battle';
 import { BOARD_SIZE, PERIODS, cleanName, maxScore, nameKey, parseCategory, periodStart, type Boards, type Entry, type Placement } from '../src/leaderboard';
+import { CHALLENGE_PATH, challengeQuery, challengeTitle, parseChallenge, shareMessage } from '../src/share';
 import { BattleRoom, battleStub, createRoom, parseCreate, type DurableObjectNamespace } from './battle';
+import { IMAGE_HEIGHT, IMAGE_WIDTH, challengeSvg } from './share';
 
 export { BattleRoom };
 
@@ -19,6 +22,9 @@ interface D1PreparedStatement {
 interface D1Database {
   prepare(sql: string): D1PreparedStatement;
   batch<T>(statements: D1PreparedStatement[]): Promise<D1Result<T>[]>;
+}
+interface Context {
+  waitUntil(promise: Promise<unknown>): void;
 }
 export interface Env {
   DB: D1Database;
@@ -133,11 +139,53 @@ async function handleBattles(request: Request, env: Env, pathname: string): Prom
 
 const escapeHtml = (text: string) => text.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
-/** The page with [Open Graph](https://ogp.me/) tags, which chat apps draw a link's preview from. */
-export function withPreview(html: string, title: string, description: string, pageUrl: string): string {
-  const tags = { 'og:type': 'website', 'og:site_name': 'Vitals', 'og:title': title, 'og:description': description, 'og:url': pageUrl };
+/** The page with [Open Graph](https://ogp.me/) tags, which chat apps draw a link's preview from; a challenge's has an image. */
+export function withPreview(html: string, title: string, description: string, pageUrl: string, imageUrl?: string): string {
+  const tags: Record<string, string> = { 'og:type': 'website', 'og:site_name': 'Vitals', 'og:title': title, 'og:description': description, 'og:url': pageUrl };
+  if (imageUrl) {
+    Object.assign(tags, {
+      'og:image': imageUrl,
+      'og:image:type': 'image/png',
+      'og:image:width': String(IMAGE_WIDTH),
+      'og:image:height': String(IMAGE_HEIGHT),
+      'og:image:alt': title,
+    });
+  }
   const meta = Object.entries(tags).map(([property, content]) => `<meta property="${property}" content="${escapeHtml(content)}" />`);
+  if (imageUrl) meta.push(`<meta name="twitter:card" content="summary_large_image" />`);
   return html.replace('</head>', `${meta.join('')}</head>`);
+}
+
+/** Bump to make apps that cached an old preview image fetch it again. */
+const IMAGE_VERSION = '1';
+const IMAGE_PATH = '/api/challenge.png';
+
+/** The game's page for a challenge link, with its preview when the link is a valid one. */
+async function challengePage(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const page = await env.ASSETS.fetch(new Request(new URL('/', url), request));
+  const challenge = parseChallenge(url.searchParams);
+  if (!challenge || !page.ok) return page;
+  const query = challengeQuery(challenge);
+  const imageUrl = `${url.origin}${IMAGE_PATH}?${query}&v=${IMAGE_VERSION}`;
+  const html = withPreview(await page.text(), challengeTitle(challenge), shareMessage(challenge), `${url.origin}/${CHALLENGE_PATH}?${query}`, imageUrl);
+  return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' } });
+}
+
+/** The preview image. Each one is drawn once and then kept, since its link fully decides it. */
+async function challengeImage(request: Request, ctx?: Context): Promise<Response> {
+  const challenge = parseChallenge(new URL(request.url).searchParams);
+  if (!challenge) return error(400, 'Unknown challenge');
+  const cache = (caches as unknown as { default: Cache }).default;
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  // Loaded on first use, so other requests don't wait for the image renderer.
+  const { renderPng } = await import('./render');
+  const png = await renderPng(challengeSvg(challenge));
+  const response = new Response(png, { headers: { 'content-type': 'image/png', 'cache-control': 'public, max-age=31536000, immutable' } });
+  // The cache only keeps GETs; link scrapers sometimes ask with HEAD first.
+  if (request.method === 'GET') ctx?.waitUntil(cache.put(request, response.clone()));
+  return response;
 }
 
 /** The game's page for a battle link, with a preview naming who the battle is from. */
@@ -168,7 +216,7 @@ export function handleApi(url: URL): Response | null {
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx?: Context): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === '/api/scores') {
       try {
@@ -179,6 +227,15 @@ export default {
       }
     }
     if (url.pathname === `/${BATTLE_PATH}`) return battlePage(request, env);
+    if (url.pathname === `/${CHALLENGE_PATH}`) return challengePage(request, env);
+    if (url.pathname === IMAGE_PATH) {
+      try {
+        return await challengeImage(request, ctx);
+      } catch (err) {
+        console.error(err);
+        return error(500, 'Image unavailable');
+      }
+    }
     if (url.pathname === '/api/battles' || url.pathname.startsWith('/api/battles/')) {
       try {
         return await handleBattles(request, env, url.pathname);

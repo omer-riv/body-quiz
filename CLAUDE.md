@@ -15,6 +15,7 @@ Use these words the same way in the UI, the README, comments and names:
 - **Clue**: what Find by Function asks: what a structure does, as the end of "Which part of the brain …?" (`CLUES`, `src/facts.ts`).
 - **Round**: one game: a mode, system and level.
 - **Solo** or **Battle**: how a round is played: alone, or live against friends. A battle is never called a "mode", since "mode" means the kind of question.
+- **Challenge**: a link holding a player's score and their round's seed, so a friend plays the same questions to beat it (`Challenge`, `src/share.ts`). Like a battle, it is never called a "mode".
 - **High scores**: the shared tables, kept by the Worker, one per round kind (`find:skeleton:1`, a *category* in the code), each over three **periods**: this week, this month, all time. **Table** is one of them; the code's `Boards` is a category's three. The **personal best** is the player's own, kept in the browser.
 - **Ghost**: a part drawn as a glassy outline. **Peel**: to take parts away to see behind them. **Focus**: some parts solid, the rest ghosts.
 

@@ -16,6 +16,8 @@
     "missing-facts": "FACTS_REPORT=1 vitest run tests/facts.test.ts --silent=false"
   },
   "dependencies": {
+    "@expo-google-fonts/rubik": "^0.4.2",
+    "@resvg/resvg-wasm": "^2.6.2",
     "three": "^0.187.0"
   },
   "devDependencies": {

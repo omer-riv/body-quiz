@@ -1,6 +1,6 @@
 // Cloudflare config: a Worker (worker/index.ts) that answers /api/*, keeping
-// the shared high scores in D1 and running battles, gives battle links their
-// preview, and serves the built game from dist/ for everything else.
+// the shared high scores in D1 and running battles, gives battle and challenge
+// links their preview, and serves the built game from dist/ for everything else.
 {
   "name": "body-quiz",
   "compatibility_date": "2026-10-01",
@@ -15,8 +15,10 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/battle"]
+    "run_worker_first": ["/api/*", "/battle", "/challenge"]
   },
+  // The font for the preview images (worker/render.ts), bundled as raw bytes.
+  "rules": [{ "type": "Data", "globs": ["**/*.ttf"], "fallthrough": true }],
   "d1_databases": [
     {
       "binding": "DB",

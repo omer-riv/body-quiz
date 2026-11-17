@@ -36,6 +36,14 @@ The results show everyone's place and score. **Rematch** sets up the same round 
 
 If the app closes or the connection drops during a battle, opening it again goes straight back in, with your score. The ✕ in a battle pauses only your screen, since the battle goes on, and offers **Leave battle**. A battle's link shows its results for a week afterwards. Battles need a connection: offline, a battle can't be made.
 
+## Challenging a friend
+
+A battle needs everyone playing at once; a challenge doesn't. After a round of Find It, Name It or Find by Function, tap **Challenge a friend** on the summary. The first time, it asks for your name. It then opens the phone's share sheet, or copies the link where there is none.
+
+The link carries your score and the round's seed, so whoever opens it plays the very same questions in the same order. They see whose challenge it is, the score to beat and the round, and tap **Accept challenge**. At the end their summary says whether they beat it, and their own **Challenge a friend** sends the same questions on, saying whose score they beat. **Play again** after that is a round with new questions.
+
+In WhatsApp and other messaging apps the link shows a card with the name, the score and the round, drawn by the Worker. A challenge needs no connection to play once the game is installed, only to send.
+
 ## Installing as an app
 
 The game is a Progressive Web App. A browser that supports it offers to install it: **Install the app** on the menu in Chrome and Edge, or **Share → Add to Home Screen** in Safari on iPhone and iPad. Installed, it opens full screen from its own icon.
@@ -123,10 +131,14 @@ To look at or clean up scores: `npx wrangler d1 execute body-quiz-scores --remot
 | `src/settings.ts` | The player's choices and best scores, kept in the browser |
 | `src/rng.ts` | The seeded random numbers a round's questions come from |
 | `scripts/build-body.py` | Builds `public/body/` from BodyParts3D |
+| `src/share.ts` | Challenge links, shared by the game and the Worker: what a link holds, checking one, and its wording |
+| `src/sharing.ts` | The challenge screen, the result line on the summary and the **Challenge a friend** button |
 | `src/battle.ts` | Battle rules, shared by the game and the Worker: the lobby, the clock, answers, tiebreaks, standings, settings |
 | `src/battle-client.ts` | The game's side of a battle's connection: making and looking up battles, and the WebSocket, with reconnecting and clock sync |
 | `src/battle-ui.ts` | Battle screens (setup, invitation, lobby, countdown, live scoreboard, results) and following the battle as it goes |
 | `src/dom.ts` | A small element builder for the screens built in code |
-| `worker/index.ts` | Cloudflare Worker: the `/api/scores` endpoint over D1, battles and their link previews, and the game's files |
+| `worker/index.ts` | Cloudflare Worker: the `/api/scores` endpoint over D1, battles, link previews for battles and challenges, and the game's files |
+| `worker/share.ts` | The image in a challenge link's preview, drawn as SVG |
+| `worker/render.ts` | Turns that SVG into a PNG with resvg (WebAssembly) and the Rubik font |
 | `worker/battle.ts` | The Durable Object that runs one battle: players' WebSockets, storage and the alarm |
 | `tests/` | Vitest unit tests |
