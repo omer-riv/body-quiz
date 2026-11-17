@@ -1,5 +1,6 @@
 // The game on screen: the menu, a round's questions and answers, and the summary.
 import { BATTLE_PATH, canBattle, isBattleCode, type BattleSettings } from './battle';
+import { randomSeed } from './battle-client';
 import { Battle, PLAY_NAMES, battleSetup, type BattleAsk, type BattleHost } from './battle-ui';
 import { Body, type Part } from './body';
 import { clueFor, factFor } from './facts';
@@ -9,6 +10,8 @@ import { BOARD_SYSTEMS, LEVELS, RANKED_MODES, categoryFor, categoryOf, roundName
 import { makeRng } from './rng';
 import { MAX_SPEED_BONUS } from './scoring';
 import { search, searchable } from './search';
+import { CHALLENGE_PATH, isChallengeRound, parseChallenge, type Challenge } from './share';
+import { challengeResult, challengeScreen, shareBox } from './sharing';
 import { bestKey, bestScore, loadSettings, markTutorialSeen, recordScore, saveSettings, tutorialSeen } from './settings';
 import {
   LAYERS, LAYER_NAMES, LEVEL_NAMES, SYSTEM_NAMES,
@@ -46,6 +49,12 @@ export class App implements BattleHost {
   /** The kind of round on screen: the one picked in the menu, or a battle's. */
   private current: Category = this.settings;
   private round: Round | null = null;
+  /** The seed the round's questions were drawn with, for a challenge link to replay them. */
+  private seed = 0;
+  /** The seed the next round is to be drawn with: a friend's challenge, accepted. */
+  private nextSeed: number | null = null;
+  /** The friend's challenge last accepted, to compare the round played on its questions against. */
+  private challenge: Challenge | null = null;
   private readonly battles = new Battle(this);
   /** How the menu's round is played: alone, or as a battle against friends. Kept while the app is open. */
   private playBattle = false;
@@ -95,11 +104,34 @@ export class App implements BattleHost {
 
     // A battle link: battle?b=CODE. Otherwise, back into a battle that was going on when the app closed.
     const link = location.pathname.endsWith(`/${BATTLE_PATH}`) ? (new URLSearchParams(location.search).get('b') ?? '').toUpperCase() : null;
-    if (link === null) await this.battles.resume();
-    else {
+    if (link !== null) {
       history.replaceState(null, '', new URL('./', document.baseURI));
       if (isBattleCode(link)) await this.battles.open(link);
+      return;
     }
+    // A challenge link: challenge?mode=…&seed=…&score=…, a friend's score on the questions of one round.
+    if (location.pathname.endsWith(`/${CHALLENGE_PATH}`)) {
+      const challenge = parseChallenge(new URLSearchParams(location.search));
+      history.replaceState(null, '', new URL('./', document.baseURI));
+      if (challenge) return this.showChallenge(challenge);
+    }
+    await this.battles.resume();
+  }
+
+  /** A friend's challenge: their score on a round, and a button to play the same questions. */
+  private showChallenge(c: Challenge): void {
+    const accept = () => {
+      this.challenge = c;
+      this.nextSeed = c.seed;
+      // The menu stays on the challenge's round, so Play again is another round like it.
+      Object.assign(this.settings, { mode: c.mode, system: c.system, level: c.level });
+      saveSettings(this.settings);
+      this.playBattle = false;
+      this.closeOverlay();
+      if (tutorialSeen()) this.play();
+      else this.startTutorial('play');
+    };
+    this.openOverlay(challengeScreen(c, accept, () => this.showMenu()));
   }
 
   // ---- Menu ----------------------------------------------------------------
@@ -269,7 +301,11 @@ export class App implements BattleHost {
       return;
     }
     this.useLevel(level);
-    this.round = new Round(mode, pickQuestions(this.poolFor(this.settings), makeRng(Date.now())));
+    // A challenge's questions, unless the menu has since moved to another kind of round.
+    const c = this.challenge;
+    this.seed = this.nextSeed !== null && c && c.mode === mode && c.system === system && c.level === level ? this.nextSeed : randomSeed();
+    this.nextSeed = null;
+    this.round = new Round(mode, pickQuestions(this.poolFor(this.settings), makeRng(this.seed)));
     this.frameSystem();
     this.ask();
   }
@@ -590,6 +626,13 @@ export class App implements BattleHost {
     $('summary-best').textContent = isBest ? 'New personal best!' : `Your best: ${bestScore(bestKey(this.settings))}`;
     // The shared tables fill in once they load, and stay empty when they can't be reached.
     const category = categoryFor(this.settings);
+    // The friend's challenge, when this round was played on its questions.
+    const against = this.challenge && isChallengeRound(this.challenge, { ...this.settings, seed: this.seed }) ? this.challenge : null;
+    const beat = against?.name && round.score > against.score ? { name: against.name, score: against.score } : undefined;
+    $('summary-challenge').replaceChildren(
+      ...(against ? [challengeResult(against, round.score)] : []),
+      ...(category && round.score > 0 ? [shareBox({ ...this.settings, seed: this.seed, score: round.score, beat })] : []),
+    );
     $('summary-scores').replaceChildren(...(category ? [summaryScores(category, round.score)] : []));
     $('summary-list').replaceChildren(
       ...round.results.map((result) => {
